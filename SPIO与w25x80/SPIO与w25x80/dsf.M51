@@ -1,0 +1,295 @@
+BL51 BANKED LINKER/LOCATER V6.15                                                        09/22/2012  21:21:05  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.15, INVOKED BY:
+E:\KEIL\C51\BIN\BL51.EXE STARTUP.obj, F32x_SPI0_Slave.obj TO dsf RAMSIZE (256)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  STARTUP.obj (?C_STARTUP)
+  F32x_SPI0_Slave.obj (F32X_SPI0_SLAVE)
+  E:\KEIL\C51\LIB\C51S.LIB (?C_INIT)
+
+
+LINK MAP OF MODULE:  dsf (?C_STARTUP)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     000CH     UNIT         ?DT?F32X_SPI0_SLAVE
+            DATA    0014H     0001H     UNIT         _DATA_GROUP_
+            IDATA   0015H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+            CODE    0003H     0014H     UNIT         ?C_INITSEG
+            CODE    0017H     0010H     UNIT         ?PR?PORT_INIT?F32X_SPI0_SLAVE
+            CODE    0027H     000CH     UNIT         ?PR?INIT_DEVICE?F32X_SPI0_SLAVE
+            CODE    0033H     0003H     ABSOLUTE     
+            CODE    0036H     00AFH     UNIT         ?PR?SPI_ISR?F32X_SPI0_SLAVE
+            CODE    00E5H     008CH     UNIT         ?C_C51STARTUP
+            CODE    0171H     000AH     UNIT         ?PR?SPI0_INIT?F32X_SPI0_SLAVE
+            CODE    017BH     0009H     UNIT         ?PR?MAIN?F32X_SPI0_SLAVE
+            CODE    0184H     0007H     UNIT         ?PR?PCA0_INIT?F32X_SPI0_SLAVE
+            CODE    018BH     0004H     UNIT         ?PR?OSCILLATOR_INIT?F32X_SPI0_SLAVE
+
+
+
+OVERLAY MAP OF MODULE:   dsf (?C_STARTUP)
+
+
+SEGMENT                                       DATA_GROUP 
+  +--> CALLED SEGMENT                       START    LENGTH
+-----------------------------------------------------------
+?C_C51STARTUP                               -----    -----
+  +--> ?PR?MAIN?F32X_SPI0_SLAVE
+  +--> ?C_INITSEG
+
+?PR?MAIN?F32X_SPI0_SLAVE                    -----    -----
+  +--> ?PR?INIT_DEVICE?F32X_SPI0_SLAVE
+
+?PR?INIT_DEVICE?F32X_SPI0_SLAVE             -----    -----
+  +--> ?PR?PCA0_INIT?F32X_SPI0_SLAVE
+  +--> ?PR?OSCILLATOR_INIT?F32X_SPI0_SLAVE
+  +--> ?PR?PORT_INIT?F32X_SPI0_SLAVE
+  +--> ?PR?SPI0_INIT?F32X_SPI0_SLAVE
+BL51 BANKED LINKER/LOCATER V6.15                                                      09/22/2012  21:21:05  PAGE 2
+
+
+
+*** NEW ROOT ***************************************************
+
+?PR?SPI_ISR?F32X_SPI0_SLAVE                 0014H    0001H
+
+
+
+SYMBOL TABLE OF MODULE:  dsf (?C_STARTUP)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        ?C_STARTUP
+  C:00E5H         SEGMENT       ?C_C51STARTUP
+  I:0015H         SEGMENT       ?STACK
+  C:0000H         PUBLIC        ?C_STARTUP
+  D:00E0H         SYMBOL        ACC
+  D:00F0H         SYMBOL        B
+  D:0083H         SYMBOL        DPH
+  D:0082H         SYMBOL        DPL
+  N:0000H         SYMBOL        IBPSTACK
+  N:0100H         SYMBOL        IBPSTACKTOP
+  N:0080H         SYMBOL        IDATALEN
+  C:00E8H         SYMBOL        IDATALOOP
+  N:0000H         SYMBOL        PBPSTACK
+  N:0100H         SYMBOL        PBPSTACKTOP
+  N:0000H         SYMBOL        PDATALEN
+  N:0000H         SYMBOL        PDATASTART
+  N:0000H         SYMBOL        PPAGE
+  N:0000H         SYMBOL        PPAGEENABLE
+  D:00A0H         SYMBOL        PPAGE_SFR
+  D:0081H         SYMBOL        SP
+  C:00E5H         SYMBOL        STARTUP1
+  N:0000H         SYMBOL        XBPSTACK
+  N:0000H         SYMBOL        XBPSTACKTOP
+  N:0000H         SYMBOL        XDATALEN
+  N:0000H         SYMBOL        XDATASTART
+  C:0000H         LINE#         126
+  C:00E5H         LINE#         133
+  C:00E7H         LINE#         134
+  C:00E8H         LINE#         135
+  C:00E9H         LINE#         136
+  C:00EBH         LINE#         185
+  C:00EEH         LINE#         196
+  -------         ENDMOD        ?C_STARTUP
+
+  -------         MODULE        F32X_SPI0_SLAVE
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:00A0H         PUBLIC        P2
+  B:00A8H.7       PUBLIC        EA
+  D:00E8H         PUBLIC        ADC0CN
+  D:00A4H         PUBLIC        P0MDOUT
+  D:00A8H         PUBLIC        IE
+  D:00A6H         PUBLIC        P2MDOUT
+  C:0171H         PUBLIC        SPI0_Init
+  D:00D9H         PUBLIC        PCA0MD
+  D:00D8H         PUBLIC        PCA0CN
+BL51 BANKED LINKER/LOCATER V6.15                                                      09/22/2012  21:21:05  PAGE 3
+
+
+  D:00B8H         PUBLIC        IP
+  C:018BH         PUBLIC        Oscillator_Init
+  D:00E1H         PUBLIC        XBR0
+  D:00E2H         PUBLIC        XBR1
+  D:00C0H         PUBLIC        SMB0CN
+  C:017BH         PUBLIC        main
+  D:000BH         PUBLIC        SPI_Data_Array
+  D:00F8H         PUBLIC        SPI0CN
+  B:00F8H.7       PUBLIC        SPIF
+  D:0088H         PUBLIC        TCON
+  B:00F8H.6       PUBLIC        WCOL
+  D:00C8H         PUBLIC        TMR2CN
+  D:00D6H         PUBLIC        P2SKIP
+  C:0036H         PUBLIC        SPI_ISR
+  C:0017H         PUBLIC        PORT_Init
+  D:00B2H         PUBLIC        OSCICN
+  D:0013H         PUBLIC        SPI_Data
+  C:0027H         PUBLIC        Init_Device
+  B:00A0H.2       PUBLIC        LED
+  D:0098H         PUBLIC        SCON0
+  D:00A1H         PUBLIC        SPI0CFG
+  B:00F8H.4       PUBLIC        RXOVRN
+  D:00A3H         PUBLIC        SPI0DAT
+  D:00D0H         PUBLIC        PSW
+  C:0184H         PUBLIC        PCA0_Init
+  -------         PROC          MAIN
+  C:017BH         LINE#         97
+  C:017BH         LINE#         98
+  C:017BH         LINE#         99
+  C:017EH         LINE#         101
+  C:0180H         LINE#         103
+  C:0182H         LINE#         105
+  -------         ENDPROC       MAIN
+  -------         PROC          PCA0_INIT
+  C:0184H         LINE#         122
+  C:0184H         LINE#         123
+  C:0184H         LINE#         124
+  C:0187H         LINE#         125
+  C:018AH         LINE#         126
+  -------         ENDPROC       PCA0_INIT
+  -------         PROC          OSCILLATOR_INIT
+  C:018BH         LINE#         139
+  C:018BH         LINE#         140
+  C:018BH         LINE#         141
+  C:018EH         LINE#         143
+  -------         ENDPROC       OSCILLATOR_INIT
+  -------         PROC          PORT_INIT
+  C:0017H         LINE#         162
+  C:0017H         LINE#         163
+  C:0017H         LINE#         164
+  C:001AH         LINE#         165
+  C:001DH         LINE#         167
+  C:0020H         LINE#         169
+  C:0023H         LINE#         170
+  C:0026H         LINE#         171
+  -------         ENDPROC       PORT_INIT
+  -------         PROC          SPI0_INIT
+BL51 BANKED LINKER/LOCATER V6.15                                                      09/22/2012  21:21:05  PAGE 4
+
+
+  C:0171H         LINE#         185
+  C:0171H         LINE#         186
+  C:0171H         LINE#         187
+  C:0174H         LINE#         189
+  C:0177H         LINE#         190
+  C:017AH         LINE#         192
+  -------         ENDPROC       SPI0_INIT
+  -------         PROC          INIT_DEVICE
+  C:0027H         LINE#         204
+  C:0027H         LINE#         205
+  C:0027H         LINE#         206
+  C:002AH         LINE#         207
+  C:002DH         LINE#         208
+  C:0030H         LINE#         209
+  -------         ENDPROC       INIT_DEVICE
+  -------         PROC          SPI_ISR
+  -------         DO            
+  D:0008H         SYMBOL        command
+  D:0009H         SYMBOL        array_index
+  D:000AH         SYMBOL        state
+  D:0014H         SYMBOL        dummy_byte
+  -------         ENDDO         
+  C:0036H         LINE#         236
+  C:003FH         LINE#         243
+  C:0042H         LINE#         244
+  C:0042H         LINE#         247
+  C:0045H         LINE#         248
+  C:0047H         LINE#         249
+  C:004AH         LINE#         250
+  C:004DH         LINE#         251
+  C:004DH         LINE#         254
+  C:0050H         LINE#         255
+  C:0052H         LINE#         256
+  C:0055H         LINE#         258
+  C:0055H         LINE#         265
+  C:0059H         LINE#         266
+  C:0059H         LINE#         267
+  C:005CH         LINE#         269
+  C:005EH         LINE#         271
+  C:0078H         LINE#         272
+  C:0078H         LINE#         273
+  C:0078H         LINE#         274
+  C:007AH         LINE#         275
+  C:007AH         LINE#         277
+  C:007CH         LINE#         279
+  C:007CH         LINE#         280
+  C:007EH         LINE#         281
+  C:007EH         LINE#         283
+  C:0080H         LINE#         285
+  C:0080H         LINE#         286
+  C:0080H         LINE#         290
+  C:0082H         LINE#         292
+  C:0082H         LINE#         293
+  C:0085H         LINE#         303
+  C:0085H         LINE#         305
+  C:0087H         LINE#         307
+  C:0087H         LINE#         314
+BL51 BANKED LINKER/LOCATER V6.15                                                      09/22/2012  21:21:05  PAGE 5
+
+
+  C:0087H         LINE#         315
+  C:008FH         LINE#         325
+  C:0091H         LINE#         327
+  C:0091H         LINE#         330
+  C:0093H         LINE#         332
+  C:0093H         LINE#         333
+  C:0093H         LINE#         334
+  C:0093H         LINE#         336
+  C:0095H         LINE#         337
+  C:009BH         LINE#         338
+  C:009BH         LINE#         339
+  C:00A9H         LINE#         340
+  C:00A9H         LINE#         341
+  C:00A9H         LINE#         342
+  C:00ACH         LINE#         344
+  C:00ACH         LINE#         346
+  C:00AEH         LINE#         348
+  C:00AEH         LINE#         349
+  C:00B5H         LINE#         351
+  C:00B7H         LINE#         353
+  C:00BCH         LINE#         354
+  C:00BCH         LINE#         355
+  C:00BCH         LINE#         356
+  C:00BEH         LINE#         358
+  C:00BEH         LINE#         359
+  C:00BEH         LINE#         361
+  C:00BEH         LINE#         363
+  C:00C0H         LINE#         365
+  C:00C0H         LINE#         366
+  C:00C8H         LINE#         367
+  C:00CBH         LINE#         371
+  C:00CDH         LINE#         373
+  C:00D2H         LINE#         374
+  C:00D2H         LINE#         375
+  C:00D2H         LINE#         376
+  C:00D4H         LINE#         378
+  C:00D4H         LINE#         379
+  C:00D7H         LINE#         381
+  C:00D7H         LINE#         383
+  C:00D9H         LINE#         385
+  C:00D9H         LINE#         386
+  C:00DCH         LINE#         387
+  C:00DCH         LINE#         388
+  C:00DCH         LINE#         390
+  C:00DEH         LINE#         391
+  C:00DEH         LINE#         392
+  -------         ENDPROC       SPI_ISR
+  -------         ENDMOD        F32X_SPI0_SLAVE
+
+Program Size: data=22.0 xdata=0 code=399
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

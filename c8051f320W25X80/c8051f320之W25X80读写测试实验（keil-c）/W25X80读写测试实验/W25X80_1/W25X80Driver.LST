@@ -1,0 +1,210 @@
+C51 COMPILER V8.08   W25X80DRIVER                                                          09/02/2011 10:20:18 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE W25X80DRIVER
+OBJECT MODULE PLACED IN W25X80Driver.OBJ
+COMPILER INVOKED BY: D:\Keil for C8051\C51\BIN\C51.EXE W25X80Driver.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          //---------------------------------------------------------------------------------
+   2          //
+   3          //                                                                W25X80驱动程序（.C）
+   4          //                                                                      
+   5          //                                                                                                                              
+   6          //                                                        作者：赌神    2011年2月24日
+   7          //---------------------------------------------------------------------------------
+   8          
+   9          #include <C8051F320.H>
+  10          
+  11          //=================================================================================
+  12          //                                   W25X80预定义
+  13          //=================================================================================
+  14          // W25X80A命令宏定义
+  15          #define FLASH_CMD_WREN              0x06    //写允许
+  16          #define FLASH_CMD_RDSR              0x05    //读状态:指令+1~N数据
+  17          #define FLASH_CMD_READ              0x03    //读数据:指令+3字节地址+1~N数据
+  18          #define FLASH_CMD_PP                0x02    //页编程:指令+3字节地址,1~256页号
+  19          #define FLASH_CMD_BE                0xC7    //芯片擦除
+  20          
+  21          /*#define FLASH_CMD_WRDI              0x04    //写禁止
+  22          #define FLASH_CMD_WRSR              0x01    //写状态:指令+1
+  23          #define FLASH_CMD_FAST_READ         0x0B    //快速读数据:指令+3字节地址+1字节任意数据+1~N数据
+  24          #define FLASH_CMD_SE                0xD8    //块擦除:指令+3字节地址
+  25          #define FLASH_CMD_DP                0xB9    //深度节电
+  26          #define FLASH_CMD_RES               0xAB    //退出深度节电:指令+3字节任意数据+1~N数据*/
+  27          
+  28          //W25X80A的控制接口定义
+  29          sbit W25X_CS    =   P1^4;               //W25X80A CS
+  30          sbit W25X_DO    =   P1^5;               //W25X80A DO
+  31          sbit W25X_CLK   =   P1^3;               //W25X80A CLK
+  32          sbit W25X_DIO   =   P1^2;               //W25X80A DIO
+  33          
+  34          //常量预定义
+  35          #define W25Xdelay     1         //定义延时时间
+  36          
+  37          //------------------------------------------------------------------------------------------
+  38          //=================================================================================
+  39          //                                   内部函数定义
+  40          //=================================================================================
+  41          //---------------------------------------------------
+  42          //函数功能：延时函数
+  43          //---------------------------------------------------
+  44          static void delay(int count)
+  45          {
+  46   1              while(count--);
+  47   1      }
+  48          //---------------------------------------------------
+  49          //函数功能：向W25X80写入一个字节数据
+  50          //---------------------------------------------------
+  51          void WriteW25X(unsigned char x)
+  52          {
+  53   1          unsigned char i;
+  54   1              delay(W25Xdelay);
+  55   1          W25X_CLK = 1;
+C51 COMPILER V8.08   W25X80DRIVER                                                          09/02/2011 10:20:18 PAGE 2   
+
+  56   1              delay(W25Xdelay);
+  57   1          for (i=0; i<8; i++)
+  58   1          {
+  59   2              W25X_CLK=0;
+  60   2              delay(W25Xdelay);
+  61   2              W25X_DIO =(bit) (x & 0x80);
+  62   2              delay(W25Xdelay);
+  63   2              W25X_CLK=1;
+  64   2              delay(W25Xdelay);
+  65   2              x <<=1;
+  66   2          }
+  67   1      }
+  68          //---------------------------------------------------
+  69          //函数功能：从W25X80读出一个字节数据
+  70          //---------------------------------------------------
+  71          unsigned char ReadW25X(void)
+  72          {
+  73   1          unsigned char i;
+  74   1          unsigned char x;
+  75   1          W25X_CLK = 1 ;
+  76   1          for (i = 0,x=0 ; i < 8 ; i++)
+  77   1          {
+  78   2              W25X_CLK=0;
+  79   2              delay(W25Xdelay);
+  80   2              x<<=1;
+  81   2              if (W25X_DO)
+  82   2              x |= 0x01;
+  83   2              W25X_CLK=1;
+  84   2              delay(W25Xdelay);
+  85   2          }
+  86   1              return x;
+  87   1      }
+  88          //---------------------------------------------------
+  89          //函数功能：测试擦除是否完成
+  90          //---------------------------------------------------
+  91          void WaitFlash(void)
+  92          {  
+  93   1              unsigned char x=1;
+  94   1              while(x&0x01)
+  95   1              {
+  96   2                      W25X_CS=0;
+  97   2                      WriteW25X(FLASH_CMD_RDSR);
+  98   2                      x=ReadW25X();
+  99   2                      W25X_CS=1;   
+ 100   2          }                   
+ 101   1      }
+ 102          //---------------------------------------------------
+ 103          //函数功能：打开写使能位
+ 104          //---------------------------------------------------
+ 105          void WriteEnable(void)
+ 106          {
+ 107   1              W25X_CS=0;
+ 108   1              WriteW25X(FLASH_CMD_WREN);   //写使能，命令字为 06h
+ 109   1              W25X_CS=1;           
+ 110   1      }
+ 111          //------------------------------------------------------------------------------------------
+ 112          //=================================================================================
+ 113          //                                   接口函数定义
+ 114          //=================================================================================
+ 115          //---------------------------------------------------
+ 116          //函数功能：配置交叉开关，设置输入输出方式
+ 117          //---------------------------------------------------    
+C51 COMPILER V8.08   W25X80DRIVER                                                          09/02/2011 10:20:18 PAGE 3   
+
+ 118          void W25X80_Port_Init()
+ 119          {                   
+ 120   1              P1MDOUT |= 0x3E;                   
+ 121   1          XBR0        = 0x00;                                             
+ 122   1              XBR1    = 0x40;
+ 123   1              P1 &= 0xFD;                                      
+ 124   1      }
+ 125          //---------------------------------------------------
+ 126          //函数功能：从W25X80的某地址addr读count个字节
+ 127          //---------------------------------------------------
+ 128          void  ReadFlash(unsigned long addr,unsigned char *rdata,unsigned char count)
+ 129          {         /*此处容易出错，如果定义为unsigned char xtada *rdata 读取可能出错！*/
+ 130   1              W25X_CS=0;
+ 131   1              WriteW25X(FLASH_CMD_READ);  //写入命令字03h
+ 132   1              (void)WriteW25X((unsigned char)(addr>>16));
+ 133   1              (void)WriteW25X((unsigned char)(addr>>8));
+ 134   1              (void)WriteW25X((unsigned char)(addr>>0));      //写入地址addr
+ 135   1              while(count-->0)
+ 136   1              { 
+ 137   2                      delay(W25Xdelay);
+ 138   2                      *rdata++=ReadW25X();
+ 139   2          }
+ 140   1              W25X_CS=1;
+ 141   1      }
+ 142          //---------------------------------------------------
+ 143          //函数功能：向W25X80的某地址addr写入count个字节
+ 144          //要求：每次不超过128个字节
+ 145          //---------------------------------------------------
+ 146          void ProgramFlash(unsigned long addr, unsigned char * wdata, int len)
+ 147          {         
+ 148   1              int nblock;  
+ 149   1              while(len > 0)
+ 150   1          {
+ 151   2                      nblock = (int)(256 - (addr & 0xFF));
+ 152   2                      if(len < nblock)
+ 153   2                              nblock = len;
+ 154   2                      WriteEnable();
+ 155   2                      W25X_CS=0;
+ 156   2                      (void)WriteW25X(FLASH_CMD_PP);     //page program
+ 157   2                      (void)WriteW25X((unsigned char)(addr>>16));
+ 158   2                      (void)WriteW25X((unsigned char)(addr>>8));
+ 159   2                      (void)WriteW25X((unsigned char)(addr>>0));
+ 160   2                      len  -= nblock;
+ 161   2                      while(nblock-- > 0)
+ 162   2              {
+ 163   3                              delay(W25Xdelay);
+ 164   3                              WriteW25X(*wdata++);
+ 165   3              }
+ 166   2                      W25X_CS=1;
+ 167   2                      WaitFlash();
+ 168   2           }  
+ 169   1      }
+ 170          //---------------------------------------------------
+ 171          //函数功能：整体擦除芯片
+ 172          //---------------------------------------------------
+ 173          void ChipErase(void)
+ 174          {
+ 175   1         WriteEnable();
+ 176   1         W25X_CS=0;
+ 177   1         WriteW25X(FLASH_CMD_BE);   //整体擦除芯片,命令字为 C7h或者60h
+ 178   1         W25X_CS=1;            
+ 179   1         WaitFlash();       //测试擦除是否完成
+C51 COMPILER V8.08   W25X80DRIVER                                                          09/02/2011 10:20:18 PAGE 4   
+
+ 180   1      }
+ 181          //------------------------------------------------------------------------------------------
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    408    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      19
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

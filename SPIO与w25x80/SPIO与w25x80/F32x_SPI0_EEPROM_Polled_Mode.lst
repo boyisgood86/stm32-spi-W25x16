@@ -1,0 +1,599 @@
+C51 COMPILER V8.16   F32X_SPI0_EEPROM_POLLED_MODE                                          09/08/2012 11:11:44 PAGE 1   
+
+
+C51 COMPILER V8.16, COMPILATION OF MODULE F32X_SPI0_EEPROM_POLLED_MODE
+OBJECT MODULE PLACED IN .\F32x_SPI0_EEPROM_Polled_Mode.obj
+COMPILER INVOKED BY: E:\Keil\C51\BIN\C51.EXE ..\SPI\SPI\F32x_SPI0_EEPROM_Polled_Mode.c BROWSE DEBUG OBJECTEXTEND PRINT(.
+                    -\F32x_SPI0_EEPROM_Polled_Mode.lst) OBJECT(.\F32x_SPI0_EEPROM_Polled_Mode.obj)
+
+line level    source
+
+   1          //-----------------------------------------------------------------------------
+   2          // F32x_SPI0_EEPROM_Polled_Mode.c
+   3          //-----------------------------------------------------------------------------
+   4          // Copyright 2006 Silicon Laboratories, Inc.
+   5          // http://www.silabs.com
+   6          //
+   7          // Program Description:
+   8          //
+   9          // This program accesses a SPI EEPROM using polled mode access. The 'F32x MCU 
+  10          // is configured in 4-wire Single Master Mode, and the EEPROM is the only 
+  11          // slave device connected to the SPI bus. The read/write operations are 
+  12          // tailored to access a Microchip 4 kB EEPROM 25LC320. The relevant hardware 
+  13          // connections of the 'F32x MCU are shown here:
+  14          // 
+  15          // P0.0 - SPI SCK    (digital output, push-pull)
+  16          // P0.1 - SPI MISO   (digital input, open-drain)
+  17          // P0.2 - SPI MOSI   (digital output, push-pull)
+  18          // P0.3 - SPI NSS    (digital output, push-pull)
+  19          // P0.4 - UART TXD   (digital output, push-pull)
+  20          // P0.5 - UART RXD   (digital input, open-drain)
+  21          // P2.2 - LED        (digital output, push-pull)
+  22          //
+  23          //
+  24          // How To Test:
+  25          //
+  26          // Method1:
+  27          // 1) Download the code to a 'F32x device that is connected as above.
+  28          // 2) Run the code. The LED will blink fast during the write/read/verify 
+  29          //    operations.
+  30          // 3) If the verification passes, the LED will blink slowly. If it fails,
+  31          //    the LED will be OFF.
+  32          //
+  33          // Method2 (optional):
+  34          // 1) Download code to a 'F32x device that is connected as above, and 
+  35          //    also connected to a RS232 transceiver.
+  36          // 2) Connect a straight serial cable from the RS232 transceiver to a PC.
+  37          // 3) On the PC, open HyperTerminal (or any other terminal program) and connect
+  38          //    to the COM port at <BAUDRATE> and 8-N-1
+  39          // 4) HyperTerminal will print the progress of the write/read operation, and in 
+  40          //    the end will print the test result as pass or fail. Additionally, if the 
+  41          //    verification passes, the LED will blink slowly. If it fails, the LED will 
+  42          //    be OFF.
+  43          //
+  44          //
+  45          // Target:         C8051F320/1
+  46          // Tool chain:     Keil C51 7.50 / Keil EVAL C51
+  47          // Command Line:   None
+  48          //
+  49          // Release 1.0
+  50          //    -Initial Revision (PKC)
+  51          //    -18 MAY 2006
+  52          //
+  53          
+  54          //-----------------------------------------------------------------------------
+C51 COMPILER V8.16   F32X_SPI0_EEPROM_POLLED_MODE                                          09/08/2012 11:11:44 PAGE 2   
+
+  55          // Includes
+  56          //-----------------------------------------------------------------------------
+  57          #include <C8051F320.h>                 // SFR declarations
+  58          #include <stdio.h>                     // printf is declared here
+  59          
+  60          //-----------------------------------------------------------------------------
+  61          // 16-bit SFR Definitions for the 'F32x
+  62          //-----------------------------------------------------------------------------
+  63          sfr16 TMR2     = 0xCC;                 // Timer2 low and high bytes together
+  64          
+  65          //-----------------------------------------------------------------------------
+  66          // User-defined types, structures, unions etc
+  67          //-----------------------------------------------------------------------------
+  68          #ifndef BYTE
+  69          #define BYTE unsigned char
+  70          #endif
+  71          
+  72          #ifndef UINT
+  73          #define UINT unsigned int
+  74          #endif
+  75          
+  76          //-----------------------------------------------------------------------------
+  77          // Global Constants
+  78          //-----------------------------------------------------------------------------
+  79          #define BAUDRATE           115200      // Baud rate of UART in bps
+  80          #define SYSCLK             24000000    // Internal oscillator frequency in Hz
+  81          
+  82          // Microchip 25AA320 Slave EEPROM Parameters
+  83          #define  F_SCK_MAX         2000000     // Max SCK freq (Hz)
+  84          #define  T_NSS_DISABLE_MIN 500         // Min NSS disable time (ns)
+  85          #define  EEPROM_CAPACITY   4096        // EEPROM capacity (bytes)
+  86          
+  87          // EEPROM Instruction Set
+  88          #define  EEPROM_CMD_READ   0x03        // Read Command
+  89          #define  EEPROM_CMD_WRITE  0x02        // Write Command
+  90          #define  EEPROM_CMD_WRDI   0x04        // Reset Write Enable Latch Command
+  91          #define  EEPROM_CMD_WREN   0x06        // Set Write Enable Latch Command
+  92          #define  EEPROM_CMD_RDSR   0x05        // Read Status Register Command
+  93          #define  EEPROM_CMD_WRSR   0x01        // Write Status Register Command
+  94          
+  95          sbit LED = P2^2;                       // LED='1' means ON
+  96          
+  97          //-----------------------------------------------------------------------------
+  98          // Function Prototypes
+  99          //-----------------------------------------------------------------------------
+ 100          void PCA0_Init (void);
+ 101          void OSCILLATOR_Init (void);
+ 102          void PORT_Init (void);
+ 103          void TIMER2_Init (void);
+ 104          void UART0_Init (void);
+ 105          void SPI0_Init (void);
+ 106          void Init_Device (void);
+ 107          
+ 108          void Delay_us (BYTE time_us);
+ 109          void Delay_ms (BYTE time_ms);
+ 110          void EEPROM_Write (UINT address, BYTE value);
+ 111          BYTE EEPROM_Read (UINT address);
+ 112          
+ 113          //-----------------------------------------------------------------------------
+ 114          // main() Routine
+ 115          //-----------------------------------------------------------------------------
+ 116          void main (void)
+C51 COMPILER V8.16   F32X_SPI0_EEPROM_POLLED_MODE                                          09/08/2012 11:11:44 PAGE 3   
+
+ 117          {
+ 118   1         UINT  address;                      // EEPROM address
+ 119   1         BYTE  test_byte;                    // Used as a temporary variable
+ 120   1         
+ 121   1         Init_Device ();                     // Initializes hardware peripherals
+ 122   1         
+ 123   1         
+ 124   1         // The following code will test the EEPROM by performing write/read/verify
+ 125   1         // operations. The first test will write 0xFFs to the EEPROM, and the 
+ 126   1         // second test will write the LSBs of the EEPROM addresses.
+ 127   1      
+ 128   1         // Fill EEPROM with 0xFF's
+ 129   1         LED = 1;
+ 130   1         printf("Filling with 0xFF's...\n");
+ 131   1         for (address = 0; address < EEPROM_CAPACITY; address++)
+ 132   1         {
+ 133   2            test_byte = 0xFF;
+ 134   2            EEPROM_Write (address, test_byte);
+ 135   2      
+ 136   2            // Print status to UART0
+ 137   2            if ((address % 16) == 0)
+ 138   2            {
+ 139   3               printf ("\nWriting 0x%04x: %02x ", address, (UINT)test_byte);
+ 140   3               LED = ~LED;
+ 141   3            }
+ 142   2            else
+ 143   2               printf ("%02x ", (UINT)test_byte);
+ 144   2         }
+ 145   1      
+ 146   1         // Verify EEPROM with 0xFF's
+ 147   1         printf("\n\nVerifying 0xFF's...\n");
+ 148   1         for (address = 0; address < EEPROM_CAPACITY; address++)
+ 149   1         {
+ 150   2            test_byte = EEPROM_Read (address);
+ 151   2      
+ 152   2            // Print status to UART0
+ 153   2            if ((address % 16) == 0)
+ 154   2            {
+ 155   3               printf ("\nVerifying 0x%04x: %02x ", address, (UINT)test_byte);
+ 156   3               LED = ~LED;
+ 157   3            }
+ 158   2            else
+ 159   2               printf ("%02x ", (UINT)test_byte);
+ 160   2            if (test_byte != 0xFF)
+ 161   2            {
+ 162   3               LED = 0;
+ 163   3               printf ("Error at %u\n", address);
+ 164   3               while (1);                    // Stop here on error (for debugging)
+ 165   3            }
+ 166   2         }
+ 167   1      
+ 168   1         // Fill EEPROM with LSB of EEPROM addresses
+ 169   1         printf("\n\nFilling with LSB of EEPROM addresses...\n");
+ 170   1         for (address = 0; address < EEPROM_CAPACITY; address++)
+ 171   1         {
+ 172   2            test_byte = address & 0xFF;
+ 173   2            EEPROM_Write (address, test_byte);
+ 174   2      
+ 175   2            // Print status to UART0
+ 176   2            if ((address % 16) == 0)
+ 177   2            {
+ 178   3               printf ("\nWriting 0x%04x: %02x ", address, (UINT)test_byte);
+C51 COMPILER V8.16   F32X_SPI0_EEPROM_POLLED_MODE                                          09/08/2012 11:11:44 PAGE 4   
+
+ 179   3               LED = ~LED;
+ 180   3            }
+ 181   2            else
+ 182   2               printf ("%02x ", (UINT)test_byte);
+ 183   2         }
+ 184   1      
+ 185   1         // Verify EEPROM with LSB of EEPROM addresses
+ 186   1         printf("\n\nVerifying LSB of EEPROM addresses...\n");
+ 187   1         for (address = 0; address < EEPROM_CAPACITY; address++)
+ 188   1         {
+ 189   2            test_byte = EEPROM_Read (address);
+ 190   2      
+ 191   2            // print status to UART0
+ 192   2            if ((address % 16) == 0)
+ 193   2            {
+ 194   3               printf ("\nVerifying 0x%04x: %02x ", address, (UINT)test_byte);
+ 195   3               LED = ~LED;
+ 196   3            }
+ 197   2            else
+ 198   2               printf ("%02x ", (UINT)test_byte);
+ 199   2            
+ 200   2            if (test_byte != (address & 0xFF))
+ 201   2            {
+ 202   3               LED = 0;
+ 203   3               printf ("Error at %u\n", address);
+ 204   3               while (1);                    // Stop here on error (for debugging)
+ 205   3            }
+ 206   2         }
+ 207   1      
+ 208   1         printf ("\n\nVerification success!\n");
+ 209   1         
+ 210   1         while (1)                           // Loop forever
+ 211   1         {                                   
+ 212   2            LED = ~LED;                      // Flash LED when done (all verified)
+ 213   2            Delay_ms (200);
+ 214   2         }
+ 215   1      }
+ 216          
+ 217          //-----------------------------------------------------------------------------
+ 218          // Initialization Subroutines
+ 219          //-----------------------------------------------------------------------------
+ 220          
+ 221          //-----------------------------------------------------------------------------
+ 222          // PCA0_Init
+ 223          //-----------------------------------------------------------------------------
+ 224          //
+ 225          // Return Value : None
+ 226          // Parameters   : None
+ 227          //
+ 228          // This function disables the watchdog timer.
+ 229          //
+ 230          //-----------------------------------------------------------------------------
+ 231          void PCA0_Init (void)
+ 232          {
+ 233   1         PCA0MD   &= ~0x40;
+ 234   1         PCA0MD    = 0x00;
+ 235   1      }
+ 236          
+ 237          //-----------------------------------------------------------------------------
+ 238          // OSCILLATOR_Init
+ 239          //-----------------------------------------------------------------------------
+ 240          //
+C51 COMPILER V8.16   F32X_SPI0_EEPROM_POLLED_MODE                                          09/08/2012 11:11:44 PAGE 5   
+
+ 241          // Return Value : None
+ 242          // Parameters   : None
+ 243          //
+ 244          // This function initializes the system clock at 24 MHz (intosc->clkmul/2).
+ 245          //
+ 246          //-----------------------------------------------------------------------------
+ 247          void OSCILLATOR_Init (void)
+ 248          {
+ 249   1         int i = 0;
+ 250   1         CLKMUL    = 0x80;
+ 251   1         for (i = 0; i < 20; i++);    // Wait 5us for initialization
+ 252   1         CLKMUL    |= 0xC0;
+ 253   1         while ((CLKMUL & 0x20) == 0);
+ 254   1         CLKSEL    = 0x02;
+ 255   1         OSCICN    = 0x83;
+ 256   1      }
+ 257          
+ 258          //-----------------------------------------------------------------------------
+ 259          // PORT_Init
+ 260          //-----------------------------------------------------------------------------
+ 261          //
+ 262          // Return Value : None
+ 263          // Parameters   : None
+ 264          //
+ 265          // This function configures the crossbar and GPIO ports.
+ 266          //
+ 267          // P0.0  -  SCK  (SPI0), Push-Pull,  Digital
+ 268          // P0.1  -  MISO (SPI0), Open-Drain, Digital
+ 269          // P0.2  -  MOSI (SPI0), Push-Pull,  Digital
+ 270          // P0.3  -  NSS  (SPI0), Push-Pull,  Digital
+ 271          // P0.4  -  TX0 (UART0), Push-Pull,  Digital
+ 272          // P0.5  -  RX0 (UART0), Open-Drain, Digital
+ 273          // P0.6  -  Unassigned,  Open-Drain, Digital
+ 274          // P0.7  -  Unassigned,  Open-Drain, Digital
+ 275          
+ 276          // P1.0  -  Unassigned,  Open-Drain, Digital
+ 277          // P1.1  -  Unassigned,  Open-Drain, Digital
+ 278          // P1.2  -  Unassigned,  Open-Drain, Digital
+ 279          // P1.3  -  Unassigned,  Open-Drain, Digital
+ 280          // P1.4  -  Unassigned,  Open-Drain, Digital
+ 281          // P1.5  -  Unassigned,  Open-Drain, Digital
+ 282          // P1.6  -  Unassigned,  Open-Drain, Digital
+ 283          // P1.7  -  Unassigned,  Open-Drain, Digital
+ 284          // P2.0  -  Skipped,     Open-Drain, Digital (Switch S2 on Target Board)
+ 285          // P2.1  -  Skipped,     Open-Drain, Digital (Switch S3 on Target Board)
+ 286          // P2.2  -  Skipped,     Push-Pull,  Digital (LED D4 on Target Board)
+ 287          // P2.3  -  Skipped,     Push-Pull,  Digital (LED D2 on Target Board)
+ 288          //
+ 289          //-----------------------------------------------------------------------------
+ 290          void PORT_Init (void)
+ 291          {
+ 292   1         P0MDOUT   = 0x1D;
+ 293   1         P2MDOUT   = 0x0C;
+ 294   1         P2SKIP    = 0x0F;
+ 295   1         XBR0      = 0x03;
+ 296   1         XBR1      = 0x40;
+ 297   1      }
+ 298          
+ 299          //-----------------------------------------------------------------------------
+ 300          // TIMER2_Init
+ 301          //-----------------------------------------------------------------------------
+ 302          //
+C51 COMPILER V8.16   F32X_SPI0_EEPROM_POLLED_MODE                                          09/08/2012 11:11:44 PAGE 6   
+
+ 303          // Return Value : None
+ 304          // Parameters   : None
+ 305          //
+ 306          // Initializes Timer2 to be clocked by SYSCLK for use as a delay timer.
+ 307          //
+ 308          //-----------------------------------------------------------------------------
+ 309          void TIMER2_Init (void)
+ 310          {
+ 311   1         CKCON    |= 0x10;
+ 312   1      }
+ 313          
+ 314          //-----------------------------------------------------------------------------
+ 315          // UART0_Init
+ 316          //-----------------------------------------------------------------------------
+ 317          //
+ 318          // Return Value : None
+ 319          // Parameters   : None
+ 320          //
+ 321          // Configures the UART0 using Timer1, for <BAUDRATE> and 8-N-1. Once this is
+ 322          // set up, the standard printf function can be used to output data.
+ 323          //
+ 324          //-----------------------------------------------------------------------------
+ 325          void UART0_Init (void)
+ 326          {
+ 327   1         SCON0 = 0x10;                       // SCON0: 8-bit variable bit rate
+ 328   1                                             //        level of STOP bit is ignored
+ 329   1                                             //        RX enabled
+ 330   1                                             //        ninth bits are zeros
+ 331   1                                             //        clear RI0 and TI0 bits
+ 332   1         if (SYSCLK/BAUDRATE/2/256 < 1)
+ 333   1         {
+ 334   2            TH1 = -(SYSCLK/BAUDRATE/2);
+ 335   2            CKCON &= ~0x0B;                  // T1M = 1; SCA1:0 = xx
+ 336   2            CKCON |=  0x08;
+ 337   2         } 
+ 338   1         else if (SYSCLK/BAUDRATE/2/256 < 4)
+ 339   1         {
+ 340   2            TH1 = -(SYSCLK/BAUDRATE/2/4);
+ 341   2            CKCON &= ~0x0B;                  // T1M = 0; SCA1:0 = 01
+ 342   2            CKCON |=  0x09;
+ 343   2         }
+ 344   1         else if (SYSCLK/BAUDRATE/2/256 < 12)
+ 345   1         {
+ 346   2            TH1 = -(SYSCLK/BAUDRATE/2/12);
+ 347   2            CKCON &= ~0x0B;                  // T1M = 0; SCA1:0 = 00
+ 348   2         } else
+ 349   1         {
+ 350   2            TH1 = -(SYSCLK/BAUDRATE/2/48);
+ 351   2            CKCON &= ~0x0B;                  // T1M = 0; SCA1:0 = 10
+ 352   2            CKCON |=  0x02;
+ 353   2         }
+ 354   1      
+ 355   1         TL1 = TH1;                          // init Timer1
+ 356   1         TMOD &= ~0xf0;                      // TMOD: timer 1 in 8-bit autoreload
+ 357   1         TMOD |=  0x20;
+ 358   1         TR1 = 1;                            // START Timer1
+ 359   1         TI0 = 1;                            // Indicate TX0 ready
+ 360   1      }
+ 361          
+ 362          //-----------------------------------------------------------------------------
+ 363          // SPI0_Init
+ 364          //-----------------------------------------------------------------------------
+C51 COMPILER V8.16   F32X_SPI0_EEPROM_POLLED_MODE                                          09/08/2012 11:11:44 PAGE 7   
+
+ 365          //
+ 366          // Return Value : None
+ 367          // Parameters   : None
+ 368          //
+ 369          // Configures SPI0 to use 4-wire Single-Master mode. The SPI timing is 
+ 370          // configured for Mode 0,0 (data centered on first edge of clock phase and 
+ 371          // SCK line low in idle state). The SPI clock is set to 2 MHz. The NSS pin 
+ 372          // is set to 1.
+ 373          //
+ 374          //-----------------------------------------------------------------------------
+ 375          void SPI0_Init()
+ 376          {
+ 377   1         SPI0CFG   = 0x40;
+ 378   1         SPI0CN    = 0x0D;
+ 379   1         
+ 380   1         // The equation for SPI0CKR is (SYSCLK/(2*F_SCK_MAX))-1
+ 381   1         SPI0CKR   = (SYSCLK/(2*F_SCK_MAX)) - 1;
+ 382   1      }
+ 383          
+ 384          //-----------------------------------------------------------------------------
+ 385          // Init_Device
+ 386          //-----------------------------------------------------------------------------
+ 387          //
+ 388          // Return Value : None
+ 389          // Parameters   : None
+ 390          //
+ 391          // Calls all device initialization functions.
+ 392          //
+ 393          //-----------------------------------------------------------------------------
+ 394          void Init_Device (void)
+ 395          {
+ 396   1         PCA0_Init ();
+ 397   1         OSCILLATOR_Init ();
+ 398   1         PORT_Init ();
+ 399   1         TIMER2_Init ();
+ 400   1         UART0_Init ();
+ 401   1         SPI0_Init ();
+ 402   1      }
+ 403          
+ 404          //-----------------------------------------------------------------------------
+ 405          // Support Subroutines
+ 406          //-----------------------------------------------------------------------------
+ 407          
+ 408          //-----------------------------------------------------------------------------
+ 409          // Delay_us
+ 410          //-----------------------------------------------------------------------------
+ 411          //
+ 412          // Return Value : None
+ 413          // Parameters   : 1. time_us - time delay in microseconds
+ 414          //                   range: 1 to 255
+ 415          //
+ 416          // Creates a delay for the specified time (in microseconds) using TIMER2. The 
+ 417          // time tolerance is approximately +/-50 ns (1/SYSCLK + function call time).
+ 418          //
+ 419          //-----------------------------------------------------------------------------
+ 420          void Delay_us (BYTE time_us)
+ 421          {
+ 422   1         TR2   = 0;                          // Stop timer
+ 423   1         TF2H  = 0;                          // Clear timer overflow flag
+ 424   1         TMR2  = -( (UINT)(SYSCLK/1000000) * (UINT)(time_us) );
+ 425   1         TR2   = 1;                          // Start timer
+ 426   1         while (!TF2H);                      // Wait till timer overflow occurs
+C51 COMPILER V8.16   F32X_SPI0_EEPROM_POLLED_MODE                                          09/08/2012 11:11:44 PAGE 8   
+
+ 427   1         TR2   = 0;                          // Stop timer
+ 428   1      }
+ 429          
+ 430          //-----------------------------------------------------------------------------
+ 431          // Delay_ms
+ 432          //-----------------------------------------------------------------------------
+ 433          //
+ 434          // Return Value : None
+ 435          // Parameters   : 1. time_ms - time delay in milliseconds
+ 436          //                   range: 1 to 255
+ 437          //
+ 438          // Creates a delay for the specified time (in milliseconds) using TIMER2. The 
+ 439          // time tolerance is approximately +/-50 ns (1/SYSCLK + function call time).
+ 440          //
+ 441          //-----------------------------------------------------------------------------
+ 442          void Delay_ms (BYTE time_ms)
+ 443          {
+ 444   1         BYTE i;
+ 445   1      
+ 446   1         while(time_ms--)
+ 447   1            for(i = 0; i< 10; i++)           // 10 * 100 microsecond delay
+ 448   1               Delay_us (100);
+ 449   1      }
+ 450          
+ 451          //-----------------------------------------------------------------------------
+ 452          // EEPROM_Write
+ 453          //-----------------------------------------------------------------------------
+ 454          //
+ 455          // Return Value : None
+ 456          // Parameters   : 1. address - the destination EEPROM address.
+ 457          //                   range: 0 to EEPROM_CAPACITY
+ 458          //                2. value - the value to write.
+ 459          //                   range: 0x00 to 0xFF
+ 460          //
+ 461          // Writes one byte to the specified address in the EEPROM. This function polls
+ 462          // the EEPROM status register after the write operation, and returns only after
+ 463          // the status register indicates that the write cycle is complete. This is to
+ 464          // prevent from having to check the status register before a read operation.
+ 465          //
+ 466          //-----------------------------------------------------------------------------
+ 467          void EEPROM_Write (UINT address, BYTE value)
+ 468          {
+ 469   1         // Writing a byte to the EEPROM is a five-step operation.
+ 470   1         
+ 471   1         // Step1: Set the Write Enable Latch to 1
+ 472   1         NSSMD0   = 0;                       // Step1.1: Activate Slave Select
+ 473   1         SPI0DAT  = EEPROM_CMD_WREN;         // Step1.2: Send the WREN command
+ 474   1         while (!SPIF);                      // Step1.3: Wait for end of transfer
+ 475   1         SPIF     = 0;                       // Step1.4: Clear the SPI intr. flag
+ 476   1         NSSMD0   = 1;                       // Step1.5: Deactivate Slave Select
+ 477   1         Delay_us (1);                       // Step1.6: Wait for at least 
+ 478   1                                             //          T_NSS_DISABLE_MIN
+ 479   1         // Step2: Send the WRITE command
+ 480   1         NSSMD0   = 0;
+ 481   1         SPI0DAT  = EEPROM_CMD_WRITE;
+ 482   1         while (!SPIF);
+ 483   1         SPIF     = 0;
+ 484   1         
+ 485   1         // Step3: Send the EEPROM destination address (MSB first)
+ 486   1         SPI0DAT  = (BYTE)((address >> 8) & 0x00FF);
+ 487   1         while (!SPIF);
+ 488   1         SPIF     = 0;
+C51 COMPILER V8.16   F32X_SPI0_EEPROM_POLLED_MODE                                          09/08/2012 11:11:44 PAGE 9   
+
+ 489   1         SPI0DAT  = (BYTE)(address & 0x00FF);
+ 490   1         while (!SPIF);
+ 491   1         SPIF     = 0;
+ 492   1         
+ 493   1         // Step4: Send the value to write
+ 494   1         SPI0DAT  = value;
+ 495   1         while (!SPIF);
+ 496   1         SPIF     = 0;
+ 497   1         NSSMD0   = 1;
+ 498   1         Delay_us (1);
+ 499   1         
+ 500   1         // Step5: Poll on the Write In Progress (WIP) bit in Read Status Register
+ 501   1         do
+ 502   1         {
+ 503   2            NSSMD0   = 0;                    // Activate Slave Select
+ 504   2            SPI0DAT  = EEPROM_CMD_RDSR;      // Send the Read Status Register command
+ 505   2            while (!SPIF);                   // Wait for the command to be sent out
+ 506   2            SPIF     = 0;
+ 507   2            SPI0DAT  = 0;                    // Dummy write to output serial clock
+ 508   2            while (!SPIF);                   // Wait for the register to be read
+ 509   2            SPIF     = 0;
+ 510   2            NSSMD0   = 1;                    // Deactivate Slave Select after read
+ 511   2            Delay_us (1);
+ 512   2         } while( (SPI0DAT & 0x01) == 0x01 );
+ 513   1      }
+ 514          
+ 515          //-----------------------------------------------------------------------------
+ 516          // EEPROM_Read
+ 517          //-----------------------------------------------------------------------------
+ 518          //
+ 519          // Return Value : The value that was read from the EEPROM
+ 520          //                   range: 0x00 to 0xFF
+ 521          // Parameters   : 1. address - the source EEPROM address.
+ 522          //                   range: 0 to EEPROM_CAPACITY
+ 523          //
+ 524          // Reads one byte from the specified EEPROM address.
+ 525          //
+ 526          //-----------------------------------------------------------------------------
+ 527          BYTE EEPROM_Read (UINT address)
+ 528          {
+ 529   1         // Reading a byte from the EEPROM is a three-step operation.
+ 530   1         
+ 531   1         // Step1: Send the READ command
+ 532   1         NSSMD0   = 0;                       // Activate Slave Select
+ 533   1         SPI0DAT  = EEPROM_CMD_READ;
+ 534   1         while (!SPIF);
+ 535   1         SPIF     = 0;
+ 536   1         
+ 537   1         // Step2: Send the EEPROM source address (MSB first)
+ 538   1         SPI0DAT  = (BYTE)((address >> 8) & 0x00FF);
+ 539   1         while (!SPIF);
+ 540   1         SPIF     = 0;
+ 541   1         SPI0DAT  = (BYTE)(address & 0x00FF);
+ 542   1         while (!SPIF);
+ 543   1         SPIF     = 0;
+ 544   1         
+ 545   1         // Step3: Read the value returned
+ 546   1         SPI0DAT  = 0;                       // Dummy write to output serial clock
+ 547   1         while (!SPIF);                      // Wait for the value to be read
+ 548   1         SPIF     = 0;
+ 549   1         NSSMD0   = 1;                       // Deactivate Slave Select
+ 550   1         Delay_us (1);
+C51 COMPILER V8.16   F32X_SPI0_EEPROM_POLLED_MODE                                          09/08/2012 11:11:44 PAGE 10  
+
+ 551   1         
+ 552   1         return SPI0DAT;
+ 553   1      }
+ 554          
+ 555          //-----------------------------------------------------------------------------
+ 556          // End Of File
+ 557          //-----------------------------------------------------------------------------
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    696    ----
+   CONSTANT SIZE    =    222    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

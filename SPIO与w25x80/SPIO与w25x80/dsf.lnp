@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"F32x_SPI0_Slave.obj" 
+TO "dsf" 
+RAMSIZE(256) 

@@ -1,0 +1,487 @@
+W25x系列Flash芯片驱动程序(SPI调试通过)
+
+main.c文件：
+
+#include "stm32f10x_it.h"
+#include"hw_conf.h"
+#include "spi_flash.h"
+void delay(int d);
+
+u8 DataByte=0;
+
+u8 Tx_Buffer[] = {0x72,0x62,0x02,0x78,0x60,0x96,0x86,0x79,0x85,0x24,0x36,0x48};
+u8 Rx_Buffer[BufferSize];
+
+vu32 FLASH_ID = 0;
+
+int main(void)
+{
+#ifdef DEBUG
+  debug();
+#endif
+
+  Setup_System();
+  SPI_FLASH_Init();
+  
+  //SPI_FLASH_ByteWrite(0x72, 0x01F01F);
+  //DataByte = SPI_FLASH_ByteRead(0x01F01F);
+  
+  //DataByte = SPI_Flash_ReadStatusRegister();
+  
+  //SPI_FLASH_SectorErase(0x01F01F);
+  //SPI_FLASH_BulkErase(0x01F01F);
+  //SPI_FLASH_ChipErase();
+    
+  //DataByte = SPI_FLASH_FasttRead(0x01F01F);
+  //DataByte = SPI_Flash_ReadStatusRegister();
+  //DataByte = SPI_FLASH_ReadDeviceID();
+  //SPI_FLASH_ReadManuID_DeviceID(0x000000);
+  //SPI_FLASH_ReadJedecID();
+  
+  
+  SPI_FLASH_PageWrite(Tx_Buffer, 0x01F01F, 10);
+  
+  SPI_FLASH_BufferRead(Rx_Buffer, 0x01F01F, 4);
+  
+  
+  while (1)
+  {
+    if(Rx_Buffer[0]==0x72)
+    {
+      GPIO_WriteBit(GPIOC,GPIO_Pin_6,(BitAction)(1-GPIO_ReadOutputDataBit(GPIOC,GPIO_Pin_6)));
+      delay(100);
+    }
+    
+    if(Rx_Buffer[1]==0x62)
+    {
+      GPIO_WriteBit(GPIOC,GPIO_Pin_7,(BitAction)(1-GPIO_ReadOutputDataBit(GPIOC,GPIO_Pin_7)));
+      delay(100);
+    }
+    
+    if(Rx_Buffer[2]==0x02)
+    {
+      GPIO_WriteBit(GPIOC,GPIO_Pin_4,(BitAction)(1-GPIO_ReadOutputDataBit(GPIOC,GPIO_Pin_4)));
+      delay(100);
+    }
+    
+    if(Rx_Buffer[3]==0x78)
+    {
+      GPIO_WriteBit(GPIOC,GPIO_Pin_5,(BitAction)(1-GPIO_ReadOutputDataBit(GPIOC,GPIO_Pin_5)));
+      delay(100);
+    }
+    
+  }
+}
+
+
+void delay(int d)
+{
+  int i = 0;
+  for ( ;d;--d)
+  for (i = 0;i<10000;i++);
+}
+
+Flash.c文件：
+
+#include "stm32f10x_spi.h"
+#include "spi_flash.h"
+#define SPI_FLASH_PageSize 256
+
+void SPI_FLASH_Init(void)
+{
+  SPI_FLASH_CS_HIGH(); 
+  SPI_Flash_WP_HIGH();
+  SPI_Flash_HOLD_HIGH();
+}
+
+void SPI_FLASH_WriteEnable(void)
+{
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(WriteEnable);
+  SPI_FLASH_CS_HIGH();
+}
+
+void SPI_FLASH_WriteDisable(void)
+{
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(WriteDisable);
+  SPI_FLASH_CS_HIGH();
+}
+
+u8 SPI_Flash_ReadStatusRegister(void)
+{
+  u8 StatusRegister = 0;
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(ReadStatusRegister);
+  StatusRegister = SPI_FLASH_ReceiveByte();
+  SPI_FLASH_CS_HIGH();
+  return StatusRegister;
+}
+
+void SPI_Flash_WriteStatusRegister(u8 Byte)
+{
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(WriteStatusRegister);
+  SPI_FLASH_SendByte(Byte);
+  SPI_FLASH_CS_HIGH();
+}
+
+u8 SPI_FLASH_SendByte(u8 byte)
+{
+  while(SPI_GetFlagStatus(SPI1, SPI_FLAG_TXE) == RESET);
+  SPI_SendData(SPI1, byte);
+
+  while(SPI_GetFlagStatus(SPI1, SPI_FLAG_RXNE) == RESET);
+  return SPI_ReceiveData(SPI1);
+}
+
+u8 SPI_FLASH_ReceiveByte(void)
+{
+  return (SPI_FLASH_SendByte(Dummy_Byte));
+}
+
+u8 SPI_FLASH_ByteRead(u32 ReadAddr)
+{
+  u32 Temp = 0;
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(Read_Data);
+  SPI_FLASH_SendByte((ReadAddr & 0xFF0000) >> 16);
+  SPI_FLASH_SendByte((ReadAddr& 0xFF00) >> 8);
+  SPI_FLASH_SendByte(ReadAddr & 0xFF);
+  
+  Temp = SPI_FLASH_ReceiveByte();
+  //Temp = SPI_FLASH_SendByte(Dummy_Byte);
+  SPI_FLASH_CS_HIGH();
+  return Temp;
+}
+
+u8 SPI_FLASH_FasttRead(u32 ReadAddr)
+{
+  u32 Temp = 0;
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(FastReadData);
+  SPI_FLASH_SendByte((ReadAddr & 0xFF0000) >> 16);
+  SPI_FLASH_SendByte((ReadAddr& 0xFF00) >> 8);
+  SPI_FLASH_SendByte(ReadAddr & 0xFF);
+  SPI_FLASH_SendByte(Dummy_Byte);
+  
+  Temp = SPI_FLASH_ReceiveByte();
+  //Temp = SPI_FLASH_SendByte(Dummy_Byte);
+  SPI_FLASH_CS_HIGH();
+  return Temp;
+}
+
+void SPI_FLASH_BufferRead(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead)
+{
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(Read_Data);
+  SPI_FLASH_SendByte((ReadAddr & 0xFF0000) >> 16);
+  SPI_FLASH_SendByte((ReadAddr& 0xFF00) >> 8);
+  SPI_FLASH_SendByte(ReadAddr & 0xFF);
+
+  while(NumByteToRead--)
+  {
+    *pBuffer = SPI_FLASH_ReceiveByte();
+    pBuffer++;
+  }
+  SPI_FLASH_CS_HIGH();
+}
+
+void SPI_FLASH_SectorErase(u32 SectorAddr)
+{
+  SPI_FLASH_WriteEnable();
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(SectorErace);
+  SPI_FLASH_SendByte((SectorAddr & 0xFF0000) >> 16);
+  SPI_FLASH_SendByte((SectorAddr & 0xFF00) >> 8);
+  SPI_FLASH_SendByte(SectorAddr & 0xFF);
+  SPI_FLASH_CS_HIGH();
+  SPI_FLASH_WaitForWriteEnd();
+}
+
+void SPI_FLASH_BulkErase(u32 BlockAddr)
+{
+  SPI_FLASH_WriteEnable();
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(BlockErace);
+  
+  SPI_FLASH_SendByte((BlockAddr & 0xFF0000) >> 16);
+  SPI_FLASH_SendByte((BlockAddr & 0xFF00) >> 8);
+  SPI_FLASH_SendByte(BlockAddr & 0xFF);
+  SPI_FLASH_CS_HIGH();
+  SPI_FLASH_WaitForWriteEnd();
+}
+
+void SPI_FLASH_ChipErase(void)
+{
+  SPI_FLASH_WriteEnable();
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(ChipErace);
+  SPI_FLASH_CS_HIGH();
+  SPI_FLASH_WaitForWriteEnd();
+}
+
+void SPI_FLASH_PowerDown()
+{
+  SPI_FLASH_WriteEnable();
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(Power_Down);
+  SPI_FLASH_CS_HIGH();
+  SPI_FLASH_WaitForWriteEnd();
+}
+
+void SPI_FLASH_ReleasePowerDown()
+{
+  SPI_FLASH_WriteEnable();
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(ReleacePowerDown);
+  SPI_FLASH_CS_HIGH();
+  SPI_FLASH_WaitForWriteEnd();
+}
+
+u8 SPI_FLASH_ReadDeviceID(void)
+{
+  u8 DeviceID = 0;
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(ReadDeviceID);
+  SPI_FLASH_SendByte(Dummy_Byte);
+  SPI_FLASH_SendByte(Dummy_Byte);
+  SPI_FLASH_SendByte(Dummy_Byte);
+  
+  DeviceID = SPI_FLASH_ReceiveByte();
+  SPI_FLASH_CS_HIGH();      
+  return DeviceID;
+}
+
+u16 SPI_FLASH_ReadManuID_DeviceID(u32 ReadManu_DeviceID_Addr)
+{
+  u16 ManuID_DeviceID = 0;
+  u8 ManufacturerID = 0,  DeviceID = 0;
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(ReadManuIDDeviceID);
+  
+  SPI_FLASH_SendByte((ReadManu_DeviceID_Addr & 0xFF0000) >> 16);
+  SPI_FLASH_SendByte((ReadManu_DeviceID_Addr & 0xFF00) >> 8);
+  SPI_FLASH_SendByte(ReadManu_DeviceID_Addr & 0xFF);
+  
+  if(ReadManu_DeviceID_Addr==1)
+  {
+    DeviceID = SPI_FLASH_ReceiveByte();
+    ManufacturerID = SPI_FLASH_ReceiveByte();
+  }
+  else 
+  {
+    ManufacturerID = SPI_FLASH_ReceiveByte();
+    DeviceID = SPI_FLASH_ReceiveByte();
+  }
+  ManuID_DeviceID = ((ManufacturerID<<8) | DeviceID);
+  SPI_FLASH_CS_HIGH();      
+  return ManuID_DeviceID;
+}
+
+
+u32 SPI_FLASH_ReadJedecID(void)
+{
+  u32 JEDECID = 0, Temp0 = 0, Temp1 = 0, Temp2 = 0;
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(ReadJedec_ID);
+  Temp0 = SPI_FLASH_ReceiveByte();
+  Temp1 = SPI_FLASH_ReceiveByte();
+  Temp2 = SPI_FLASH_ReceiveByte();
+  SPI_FLASH_CS_HIGH();  
+  JEDECID = (Temp0 << 16) | (Temp1 << 8) | Temp2;
+  return JEDECID;
+}
+
+
+void SPI_FLASH_ByteWrite(u8 Byte, u32 WriteAddr)
+{
+  SPI_FLASH_WriteEnable(); 
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(Page_Program);
+  SPI_FLASH_SendByte((WriteAddr & 0xFF0000) >> 16);
+  SPI_FLASH_SendByte((WriteAddr & 0xFF00) >> 8);  
+  SPI_FLASH_SendByte(WriteAddr & 0xFF);
+  
+  SPI_FLASH_SendByte(Byte); 
+  SPI_FLASH_CS_HIGH();
+  SPI_FLASH_WaitForWriteEnd();
+}
+
+void SPI_FLASH_PageWrite(u8* pBuffer, u32 WriteAddr, u16 NumByteToWrite)
+{
+  SPI_FLASH_WriteEnable(); 
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(Page_Program);
+  SPI_FLASH_SendByte((WriteAddr & 0xFF0000) >> 16);
+  SPI_FLASH_SendByte((WriteAddr & 0xFF00) >> 8);  
+  SPI_FLASH_SendByte(WriteAddr & 0xFF);
+  
+  while(NumByteToWrite--)
+  {
+    SPI_FLASH_SendByte(*pBuffer);
+    pBuffer++; 
+  }
+  SPI_FLASH_CS_HIGH();
+  SPI_FLASH_WaitForWriteEnd();
+}
+
+void SPI_FLASH_BufferWrite(u8* pBuffer, u32 WriteAddr, u16 NumByteToWrite)
+{
+  u8 NumOfPage = 0, NumOfSingle = 0, Addr = 0, count = 0, temp = 0;
+
+  Addr = WriteAddr % SPI_FLASH_PageSize;
+  count = SPI_FLASH_PageSize - Addr;
+  NumOfPage =  NumByteToWrite / SPI_FLASH_PageSize;
+  NumOfSingle = NumByteToWrite % SPI_FLASH_PageSize;
+  
+  if(Addr == 0) /* WriteAddr is SPI_FLASH_PageSize aligned  */
+  {
+    if(NumOfPage == 0) /* NumByteToWrite < SPI_FLASH_PageSize */
+    {
+      SPI_FLASH_PageWrite(pBuffer, WriteAddr, NumByteToWrite);
+    }
+    else /* NumByteToWrite > SPI_FLASH_PageSize */ 
+    {
+      while(NumOfPage--)
+      {
+        SPI_FLASH_PageWrite(pBuffer, WriteAddr, SPI_FLASH_PageSize);
+        WriteAddr +=  SPI_FLASH_PageSize;
+        pBuffer += SPI_FLASH_PageSize;  
+      }    
+     
+      SPI_FLASH_PageWrite(pBuffer, WriteAddr, NumOfSingle);
+   }
+  }
+  else /* WriteAddr is not SPI_FLASH_PageSize aligned  */
+  {
+    if(NumOfPage== 0) /* NumByteToWrite < SPI_FLASH_PageSize */
+    {
+      if(NumOfSingle > count) /* (NumByteToWrite + WriteAddr) > SPI_FLASH_PageSize */
+      {
+        temp = NumOfSingle - count;
+      
+        SPI_FLASH_PageWrite(pBuffer, WriteAddr, count);
+        WriteAddr +=  count;
+        pBuffer += count; 
+        
+        SPI_FLASH_PageWrite(pBuffer, WriteAddr, temp);
+      }
+      else
+      {
+        SPI_FLASH_PageWrite(pBuffer, WriteAddr, NumByteToWrite);
+      }
+    }
+    else /* NumByteToWrite > SPI_FLASH_PageSize */
+    {
+      NumByteToWrite -= count;
+      NumOfPage =  NumByteToWrite / SPI_FLASH_PageSize;
+      NumOfSingle = NumByteToWrite % SPI_FLASH_PageSize;
+      
+      SPI_FLASH_PageWrite(pBuffer, WriteAddr, count);
+      WriteAddr +=  count;
+      pBuffer += count;  
+     
+      while(NumOfPage--)
+      {
+        SPI_FLASH_PageWrite(pBuffer, WriteAddr, SPI_FLASH_PageSize);
+        WriteAddr +=  SPI_FLASH_PageSize;
+        pBuffer += SPI_FLASH_PageSize;
+      }
+      
+      if(NumOfSingle != 0)
+      {
+        SPI_FLASH_PageWrite(pBuffer, WriteAddr, NumOfSingle);
+      }
+    }
+  }
+}
+
+
+void SPI_FLASH_WaitForWriteEnd(void)
+{
+  u8 FLASH_Status = 0;
+  SPI_FLASH_CS_LOW();
+  SPI_FLASH_SendByte(ReadStatusRegister);
+  do
+  {
+    FLASH_Status = SPI_FLASH_SendByte(Dummy_Byte);
+
+  } while((FLASH_Status & WriteStatusRegister) == SET);
+
+  SPI_FLASH_CS_HIGH();
+}
+
+Flash.h文件：#include "stm32f10x_lib.h"
+#ifndef __SPI_FLASH_H
+#define __SPI_FLASH_H
+
+#define  BufferSize               (countof(Tx_Buffer)-1)
+#define countof(a)                (sizeof(a) / sizeof(*(a)))
+#define SPI_FLASH_PageSize        256
+#define Dummy_Byte                0xA5
+
+
+#define SPI_FLASH_CS_LOW()        GPIO_ResetBits(GPIOA, GPIO_Pin_4)
+#define SPI_FLASH_CS_HIGH()       GPIO_SetBits(GPIOA, GPIO_Pin_4)
+
+#define SPI_Flash_WP_LOW()        GPIO_ResetBits(GPIOC, GPIO_Pin_0)
+#define SPI_Flash_WP_HIGH()       GPIO_SetBits(GPIOC, GPIO_Pin_0)
+
+#define SPI_Flash_HOLD_LOW()      GPIO_ResetBits(GPIOC, GPIO_Pin_1)
+#define SPI_Flash_HOLD_HIGH()     GPIO_SetBits(GPIOC, GPIO_Pin_1)
+
+
+#define WriteEnable               0x06       //写使能，设置状态寄存器
+#define WriteDisable              0x04       //写禁止
+#define ReadStatusRegister        0x05       //读状态寄存器
+#define WriteStatusRegister       0x01       //写状态寄存器
+#define Read_Data                 0x03       //读取存储器数据
+#define FastReadData              0x0B       //快速读取存储器数据
+#define FastReadDualOutput        0x3B       //快速双端口输出方式读取存储器数据
+#define Page_Program              0x02       //页面编程--写数据
+
+#define BlockErace                0xD8       //块擦除
+#define SectorErace               0x20       //扇区擦除
+#define ChipErace                 0xC7       //片擦除
+#define Power_Down                0xB9       //掉电模式
+
+#define ReleacePowerDown          0xAB       //退出掉电模式
+#define ReadDeviceID              0xAB       //获取设备ID信息
+
+
+#define ReadDeviceID              0xAB       //退出掉电模式、设备ID信息
+#define ReadManuIDDeviceID        0x90       //读取制造厂商ID信息和设备ID信息
+#define ReadJedec_ID              0x9F       //JEDEC的ID信息
+
+void SPI_FLASH_Init(void);
+void SPI_FLASH_WriteEnable(void);
+void SPI_FLASH_WriteDisable(void);
+u8 SPI_Flash_ReadStatusRegister(void);
+void SPI_Flash_WriteStatusRegister(u8 Byte);
+
+u8 SPI_FLASH_SendByte(u8 byte);
+u8 SPI_FLASH_ReceiveByte(void);
+
+u8 SPI_FLASH_ByteRead(u32 ReadAddr);
+u8 SPI_FLASH_FasttRead(u32 ReadAddr);
+void SPI_FLASH_BufferRead(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead);
+void SPI_FLASH_SectorErase(u32 SectorAddr);
+void SPI_FLASH_BulkErase(u32 BlockAddr);
+void SPI_FLASH_ChipErase(void);
+
+void SPI_FLASH_PowerDown();
+void SPI_FLASH_ReleasePowerDown();
+u8 SPI_FLASH_ReadDeviceID(void);
+u16 SPI_FLASH_ReadManuID_DeviceID(u32 ReadManu_DeviceID_Addr);
+u32 SPI_FLASH_ReadJedecID(void);
+
+void SPI_FLASH_ByteWrite(u8 Byte, u32 WriteAddr);
+void SPI_FLASH_PageWrite(u8* pBuffer, u32 WriteAddr, u16 NumByteToWrite);
+void SPI_FLASH_BufferWrite(u8* pBuffer, u32 WriteAddr, u16 NumByteToWrite);
+
+void SPI_FLASH_WaitForWriteEnd(void);
+
+
+#endif 
+

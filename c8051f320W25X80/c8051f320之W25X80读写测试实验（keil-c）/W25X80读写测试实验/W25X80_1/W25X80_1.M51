@@ -1,0 +1,498 @@
+BL51 BANKED LINKER/LOCATER V6.05                                                        09/02/2011  10:20:18  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.05, INVOKED BY:
+D:\KEIL FOR C8051\C51\BIN\BL51.EXE main.obj, W25X80Driver.obj, SMGDriver.obj TO W25X80_1 RAMSIZE (256)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  main.obj (MAIN)
+  W25X80Driver.obj (W25X80DRIVER)
+  SMGDriver.obj (SMGDRIVER)
+  D:\KEIL FOR C8051\C51\LIB\C51S.LIB (?C_STARTUP)
+  D:\KEIL FOR C8051\C51\LIB\C51S.LIB (?C?CLDPTR)
+  D:\KEIL FOR C8051\C51\LIB\C51S.LIB (?C?CSTPTR)
+  D:\KEIL FOR C8051\C51\LIB\C51S.LIB (?C?SLCMP)
+  D:\KEIL FOR C8051\C51\LIB\C51S.LIB (?C?ULSHR)
+  D:\KEIL FOR C8051\C51\LIB\C51S.LIB (?C?LLDIIDATA)
+
+
+LINK MAP OF MODULE:  W25X80_1 (MAIN)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     000DH     UNIT         _DATA_GROUP_
+            IDATA   0015H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+            CODE    0003H     00B5H     UNIT         ?PR?_PROGRAMFLASH?W25X80DRIVER
+            CODE    00B8H     0074H     UNIT         ?C?LIB_CODE
+            CODE    012CH     0050H     UNIT         ?PR?MAIN?MAIN
+            CODE    017CH     004FH     UNIT         ?PR?_DELAY?MAIN
+            CODE    01CBH     004BH     UNIT         ?PR?_READFLASH?W25X80DRIVER
+            CODE    0216H     002CH     UNIT         ?PR?_LIGHTSMG?SMGDRIVER
+            CODE    0242H     0027H     UNIT         ?PR?_WRITEW25X?W25X80DRIVER
+            CODE    0269H     001EH     UNIT         ?PR?READW25X?W25X80DRIVER
+            CODE    0287H     001DH     UNIT         ?PR?_TXDATA?SMGDRIVER
+            CODE    02A4H     0018H     UNIT         ?PR?_DELAY?W25X80DRIVER
+            CODE    02BCH     0015H     UNIT         ?PR?WAITFLASH?W25X80DRIVER
+            CODE    02D1H     0013H     UNIT         ?PR?SMG_PORT_INIT?SMGDRIVER
+            CODE    02E4H     0010H     UNIT         ?CO?SMGDRIVER
+            CODE    02F4H     000FH     UNIT         ?PR?CHIPERASE?W25X80DRIVER
+            CODE    0303H     000DH     UNIT         ?PR?W25X80_PORT_INIT?W25X80DRIVER
+            CODE    0310H     000CH     UNIT         ?C_C51STARTUP
+            CODE    031CH     000AH     UNIT         ?PR?WRITEENABLE?W25X80DRIVER
+            CODE    0326H     0006H     UNIT         ?PR?PORT_INIT?MAIN
+            CODE    032CH     0004H     UNIT         ?PR?SYSCLK_INIT?MAIN
+
+
+
+OVERLAY MAP OF MODULE:   W25X80_1 (MAIN)
+
+
+SEGMENT                                     DATA_GROUP 
+BL51 BANKED LINKER/LOCATER V6.05                                                      09/02/2011  10:20:18  PAGE 2
+
+
+  +--> CALLED SEGMENT                     START    LENGTH
+---------------------------------------------------------
+?C_C51STARTUP                             -----    -----
+  +--> ?PR?MAIN?MAIN
+
+?PR?MAIN?MAIN                             0008H    0002H
+  +--> ?PR?SYSCLK_INIT?MAIN
+  +--> ?PR?PORT_INIT?MAIN
+  +--> ?PR?CHIPERASE?W25X80DRIVER
+  +--> ?PR?_PROGRAMFLASH?W25X80DRIVER
+  +--> ?PR?_READFLASH?W25X80DRIVER
+  +--> ?PR?_LIGHTSMG?SMGDRIVER
+  +--> ?PR?_DELAY?MAIN
+
+?PR?PORT_INIT?MAIN                        -----    -----
+  +--> ?PR?W25X80_PORT_INIT?W25X80DRIVER
+  +--> ?PR?SMG_PORT_INIT?SMGDRIVER
+
+?PR?CHIPERASE?W25X80DRIVER                -----    -----
+  +--> ?PR?WRITEENABLE?W25X80DRIVER
+  +--> ?PR?_WRITEW25X?W25X80DRIVER
+  +--> ?PR?WAITFLASH?W25X80DRIVER
+
+?PR?WRITEENABLE?W25X80DRIVER              -----    -----
+  +--> ?PR?_WRITEW25X?W25X80DRIVER
+
+?PR?_WRITEW25X?W25X80DRIVER               -----    -----
+  +--> ?PR?_DELAY?W25X80DRIVER
+
+?PR?WAITFLASH?W25X80DRIVER                -----    -----
+  +--> ?PR?_WRITEW25X?W25X80DRIVER
+  +--> ?PR?READW25X?W25X80DRIVER
+
+?PR?READW25X?W25X80DRIVER                 -----    -----
+  +--> ?PR?_DELAY?W25X80DRIVER
+
+?PR?_PROGRAMFLASH?W25X80DRIVER            000AH    000BH
+  +--> ?PR?WRITEENABLE?W25X80DRIVER
+  +--> ?PR?_WRITEW25X?W25X80DRIVER
+  +--> ?PR?_DELAY?W25X80DRIVER
+  +--> ?PR?WAITFLASH?W25X80DRIVER
+
+?PR?_READFLASH?W25X80DRIVER               000AH    0008H
+  +--> ?PR?_WRITEW25X?W25X80DRIVER
+  +--> ?PR?_DELAY?W25X80DRIVER
+  +--> ?PR?READW25X?W25X80DRIVER
+
+?PR?_LIGHTSMG?SMGDRIVER                   -----    -----
+  +--> ?CO?SMGDRIVER
+  +--> ?PR?_TXDATA?SMGDRIVER
+
+?PR?_DELAY?MAIN                           000AH    0008H
+
+
+
+SYMBOL TABLE OF MODULE:  W25X80_1 (MAIN)
+
+BL51 BANKED LINKER/LOCATER V6.05                                                      09/02/2011  10:20:18  PAGE 3
+
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:00E8H         PUBLIC        ADC0CN
+  D:00A8H         PUBLIC        IE
+  C:017CH         PUBLIC        _delay
+  D:00D9H         PUBLIC        PCA0MD
+  D:00D8H         PUBLIC        PCA0CN
+  D:00B8H         PUBLIC        IP
+  C:0326H         PUBLIC        Port_Init
+  D:00C0H         PUBLIC        SMB0CN
+  C:012CH         PUBLIC        main
+  D:00F8H         PUBLIC        SPI0CN
+  D:0088H         PUBLIC        TCON
+  D:00C8H         PUBLIC        TMR2CN
+  D:00B2H         PUBLIC        OSCICN
+  C:032CH         PUBLIC        SYSCLK_Init
+  D:0098H         PUBLIC        SCON0
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          SYSCLK_INIT
+  C:032CH         LINE#         19
+  C:032CH         LINE#         20
+  C:032CH         LINE#         21
+  C:032FH         LINE#         22
+  -------         ENDPROC       SYSCLK_INIT
+  -------         PROC          PORT_INIT
+  C:0326H         LINE#         26
+  C:0326H         LINE#         27
+  C:0326H         LINE#         28
+  C:0329H         LINE#         29
+  -------         ENDPROC       PORT_INIT
+  -------         PROC          _DELAY
+  D:000AH         SYMBOL        n
+  -------         DO            
+  D:000EH         SYMBOL        i
+  -------         ENDDO         
+  C:017CH         LINE#         34
+  C:0184H         LINE#         35
+  C:0184H         LINE#         37
+  C:0191H         LINE#         38
+  C:01CAH         LINE#         39
+  -------         ENDPROC       _DELAY
+  -------         PROC          MAIN
+  -------         DO            
+  D:0008H         SYMBOL        count
+  D:0009H         SYMBOL        dat
+  -------         ENDDO         
+  C:012CH         LINE#         45
+  C:012CH         LINE#         46
+  C:012CH         LINE#         48
+  C:012FH         LINE#         49
+  C:0132H         LINE#         50
+  C:0135H         LINE#         51
+  C:0135H         LINE#         52
+  C:0135H         LINE#         53
+BL51 BANKED LINKER/LOCATER V6.05                                                      09/02/2011  10:20:18  PAGE 4
+
+
+  C:0138H         LINE#         54
+  C:0138H         LINE#         55
+  C:013BH         LINE#         56
+  C:013BH         LINE#         57
+  C:014EH         LINE#         58
+  C:015FH         LINE#         59
+  C:0166H         LINE#         60
+  C:0171H         LINE#         61
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        MAIN
+
+  -------         MODULE        W25X80DRIVER
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  C:0303H         PUBLIC        W25X80_Port_Init
+  D:0090H         PUBLIC        P1
+  C:02BCH         PUBLIC        WaitFlash
+  B:0090H.5       PUBLIC        W25X_DO
+  D:00E8H         PUBLIC        ADC0CN
+  D:00A5H         PUBLIC        P1MDOUT
+  B:0090H.4       PUBLIC        W25X_CS
+  D:00A8H         PUBLIC        IE
+  C:02B1H         SYMBOL        _delay
+  C:0269H         PUBLIC        ReadW25X
+  D:00D8H         PUBLIC        PCA0CN
+  D:00B8H         PUBLIC        IP
+  D:00E1H         PUBLIC        XBR0
+  D:00E2H         PUBLIC        XBR1
+  D:00C0H         PUBLIC        SMB0CN
+  C:024DH         PUBLIC        _WriteW25X
+  D:00F8H         PUBLIC        SPI0CN
+  D:0088H         PUBLIC        TCON
+  D:00C8H         PUBLIC        TMR2CN
+  C:0003H         PUBLIC        _ProgramFlash
+  B:0090H.3       PUBLIC        W25X_CLK
+  B:0090H.2       PUBLIC        W25X_DIO
+  C:031CH         PUBLIC        WriteEnable
+  D:0098H         PUBLIC        SCON0
+  C:01CBH         PUBLIC        _ReadFlash
+  C:02F4H         PUBLIC        ChipErase
+  D:00D0H         PUBLIC        PSW
+  C:02ABH         SYMBOL        L?0033
+  C:02ADH         SYMBOL        L?0034
+  -------         PROC          L?0032
+  -------         ENDPROC       L?0032
+  C:02ABH         SYMBOL        L?0033
+  C:02ADH         SYMBOL        L?0034
+  -------         PROC          _DELAY
+  D:0006H         SYMBOL        count
+  C:02B1H         LINE#         44
+  C:02B1H         LINE#         45
+  C:02B1H         LINE#         46
+  C:02BBH         LINE#         47
+  -------         ENDPROC       _DELAY
+  -------         PROC          L?0035
+  -------         ENDPROC       L?0035
+  -------         PROC          _WRITEW25X
+  D:0005H         SYMBOL        x
+BL51 BANKED LINKER/LOCATER V6.05                                                      09/02/2011  10:20:18  PAGE 5
+
+
+  -------         DO            
+  D:0003H         SYMBOL        i
+  -------         ENDDO         
+  C:024DH         LINE#         51
+  C:024FH         LINE#         52
+  C:024FH         LINE#         54
+  C:024FH         LINE#         55
+  C:024FH         LINE#         56
+  C:0252H         LINE#         57
+  C:0254H         LINE#         58
+  C:0254H         LINE#         59
+  C:0256H         LINE#         60
+  C:0259H         LINE#         61
+  C:025DH         LINE#         62
+  C:025DH         LINE#         63
+  C:025DH         LINE#         64
+  C:0260H         LINE#         65
+  C:0264H         LINE#         66
+  C:0268H         LINE#         67
+  -------         ENDPROC       _WRITEW25X
+  -------         PROC          READW25X
+  -------         DO            
+  D:0005H         SYMBOL        i
+  D:0003H         SYMBOL        x
+  -------         ENDDO         
+  C:0269H         LINE#         71
+  C:0269H         LINE#         72
+  C:0269H         LINE#         75
+  C:026BH         LINE#         76
+  C:026EH         LINE#         77
+  C:026EH         LINE#         78
+  C:0270H         LINE#         79
+  C:0273H         LINE#         80
+  C:0277H         LINE#         81
+  C:027AH         LINE#         82
+  C:027DH         LINE#         83
+  C:027DH         LINE#         84
+  C:0280H         LINE#         85
+  C:0284H         LINE#         86
+  C:0286H         LINE#         87
+  -------         ENDPROC       READW25X
+  -------         PROC          WAITFLASH
+  -------         DO            
+  D:0007H         SYMBOL        x
+  -------         ENDDO         
+  C:02BCH         LINE#         91
+  C:02BCH         LINE#         92
+  C:02BCH         LINE#         93
+  C:02BEH         LINE#         94
+  C:02C2H         LINE#         95
+  C:02C2H         LINE#         96
+  C:02C4H         LINE#         97
+  C:02C9H         LINE#         98
+  C:02CCH         LINE#         99
+  C:02CEH         LINE#         100
+  C:02D0H         LINE#         101
+  -------         ENDPROC       WAITFLASH
+BL51 BANKED LINKER/LOCATER V6.05                                                      09/02/2011  10:20:18  PAGE 6
+
+
+  -------         PROC          WRITEENABLE
+  C:031CH         LINE#         105
+  C:031CH         LINE#         106
+  C:031CH         LINE#         107
+  C:031EH         LINE#         108
+  C:0323H         LINE#         109
+  C:0325H         LINE#         110
+  -------         ENDPROC       WRITEENABLE
+  -------         PROC          W25X80_PORT_INIT
+  C:0303H         LINE#         118
+  C:0303H         LINE#         119
+  C:0303H         LINE#         120
+  C:0306H         LINE#         121
+  C:0309H         LINE#         122
+  C:030CH         LINE#         123
+  C:030FH         LINE#         124
+  -------         ENDPROC       W25X80_PORT_INIT
+  -------         PROC          _READFLASH
+  D:000AH         SYMBOL        addr
+  D:000EH         SYMBOL        rdata
+  D:0011H         SYMBOL        count
+  C:01CBH         LINE#         128
+  C:01D9H         LINE#         129
+  C:01D9H         LINE#         130
+  C:01DBH         LINE#         131
+  C:01E0H         LINE#         132
+  C:01E5H         LINE#         133
+  C:01EAH         LINE#         134
+  C:01EFH         LINE#         135
+  C:01F9H         LINE#         136
+  C:01F9H         LINE#         137
+  C:01FCH         LINE#         138
+  C:0211H         LINE#         139
+  C:0213H         LINE#         140
+  C:0215H         LINE#         141
+  -------         ENDPROC       _READFLASH
+  -------         PROC          _PROGRAMFLASH
+  D:000AH         SYMBOL        addr
+  D:000EH         SYMBOL        wdata
+  D:0011H         SYMBOL        len
+  -------         DO            
+  D:0013H         SYMBOL        nblock
+  -------         ENDDO         
+  C:0003H         LINE#         146
+  C:0011H         LINE#         147
+  C:0011H         LINE#         149
+  C:0021H         LINE#         150
+  C:0021H         LINE#         151
+  C:002EH         LINE#         152
+  C:003FH         LINE#         153
+  C:0045H         LINE#         154
+  C:0048H         LINE#         155
+  C:004AH         LINE#         156
+  C:004FH         LINE#         157
+  C:005FH         LINE#         158
+  C:006FH         LINE#         159
+  C:0074H         LINE#         160
+BL51 BANKED LINKER/LOCATER V6.05                                                      09/02/2011  10:20:18  PAGE 7
+
+
+  C:0081H         LINE#         161
+  C:0095H         LINE#         162
+  C:0095H         LINE#         163
+  C:0098H         LINE#         164
+  C:00ADH         LINE#         165
+  C:00AFH         LINE#         166
+  C:00B1H         LINE#         167
+  C:00B4H         LINE#         168
+  C:00B7H         LINE#         169
+  -------         ENDPROC       _PROGRAMFLASH
+  -------         PROC          CHIPERASE
+  C:02F4H         LINE#         173
+  C:02F4H         LINE#         174
+  C:02F4H         LINE#         175
+  C:02F7H         LINE#         176
+  C:02F9H         LINE#         177
+  C:02FEH         LINE#         178
+  C:0300H         LINE#         179
+  -------         ENDPROC       CHIPERASE
+  -------         ENDMOD        W25X80DRIVER
+
+  -------         MODULE        SMGDRIVER
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  C:0216H         PUBLIC        _lightSMG
+  B:00A0H.4       PUBLIC        SPI_STCP
+  D:00E8H         PUBLIC        ADC0CN
+  D:00A5H         PUBLIC        P1MDOUT
+  D:00A8H         PUBLIC        IE
+  D:00A6H         PUBLIC        P2MDOUT
+  D:00D8H         PUBLIC        PCA0CN
+  D:00B8H         PUBLIC        IP
+  D:00E1H         PUBLIC        XBR0
+  D:00E2H         PUBLIC        XBR1
+  D:00C0H         PUBLIC        SMB0CN
+  D:00F8H         PUBLIC        SPI0CN
+  D:0088H         PUBLIC        TCON
+  C:02E4H         PUBLIC        shuzi
+  D:00C8H         PUBLIC        TMR2CN
+  B:00A0H.0       PUBLIC        SMG1_SELECT
+  B:00A0H.1       PUBLIC        SMG2_SELECT
+  B:00A0H.2       PUBLIC        SMG3_SELECT
+  B:00A0H.3       PUBLIC        SMG4_SELECT
+  B:0090H.2       PUBLIC        SPI_DS
+  D:0098H         PUBLIC        SCON0
+  C:02D1H         PUBLIC        SMG_Port_Init
+  C:0287H         SYMBOL        _txData
+  D:00D0H         PUBLIC        PSW
+  B:0090H.3       PUBLIC        SPI_SHCP
+  -------         PROC          _TXDATA
+  D:0007H         SYMBOL        dat
+  -------         DO            
+  D:0006H         SYMBOL        i
+  -------         ENDDO         
+  C:0287H         LINE#         37
+  C:0287H         LINE#         38
+BL51 BANKED LINKER/LOCATER V6.05                                                      09/02/2011  10:20:18  PAGE 8
+
+
+  C:0287H         LINE#         40
+  C:0289H         LINE#         41
+  C:028BH         LINE#         42
+  C:028BH         LINE#         43
+  C:028DH         LINE#         44
+  C:0291H         LINE#         45
+  C:0295H         LINE#         47
+  C:0297H         LINE#         48
+  C:029BH         LINE#         49
+  C:029DH         LINE#         50
+  C:02A1H         LINE#         51
+  C:02A3H         LINE#         52
+  -------         ENDPROC       _TXDATA
+  -------         PROC          SMG_PORT_INIT
+  C:02D1H         LINE#         60
+  C:02D1H         LINE#         61
+  C:02D1H         LINE#         62
+  C:02D4H         LINE#         63
+  C:02D7H         LINE#         64
+  C:02DAH         LINE#         65
+  C:02DDH         LINE#         66
+  C:02E0H         LINE#         67
+  C:02E3H         LINE#         68
+  -------         ENDPROC       SMG_PORT_INIT
+  -------         PROC          _LIGHTSMG
+  D:0007H         SYMBOL        select
+  D:0005H         SYMBOL        dat
+  C:0216H         LINE#         73
+  C:0216H         LINE#         74
+  C:0216H         LINE#         75
+  C:0218H         LINE#         76
+  C:021AH         LINE#         77
+  C:021CH         LINE#         78
+  C:021EH         LINE#         79
+  C:0222H         LINE#         80
+  C:0224H         LINE#         81
+  C:0228H         LINE#         82
+  C:022AH         LINE#         83
+  C:022EH         LINE#         84
+  C:0230H         LINE#         85
+  C:0234H         LINE#         86
+  C:0236H         LINE#         87
+  C:023FH         LINE#         88
+  C:0241H         LINE#         89
+  -------         ENDPROC       _LIGHTSMG
+  -------         ENDMOD        SMGDRIVER
+
+  -------         MODULE        ?C?CLDPTR
+  C:00B8H         PUBLIC        ?C?CLDPTR
+  -------         ENDMOD        ?C?CLDPTR
+
+  -------         MODULE        ?C?CSTPTR
+  C:00D1H         PUBLIC        ?C?CSTPTR
+  -------         ENDMOD        ?C?CSTPTR
+
+  -------         MODULE        ?C?SLCMP
+  C:00E3H         PUBLIC        ?C?SLCMP
+BL51 BANKED LINKER/LOCATER V6.05                                                      09/02/2011  10:20:18  PAGE 9
+
+
+  -------         ENDMOD        ?C?SLCMP
+
+  -------         MODULE        ?C?ULSHR
+  C:00F9H         PUBLIC        ?C?ULSHR
+  -------         ENDMOD        ?C?ULSHR
+
+  -------         MODULE        ?C?LLDIIDATA
+  C:0115H         PUBLIC        ?C?LLDIIDATA
+  C:010CH         PUBLIC        ?C?LLDIIDATA1
+  C:010EH         PUBLIC        ?C?LLDIIDATA8
+  -------         ENDMOD        ?C?LLDIIDATA
+
+Program Size: data=22.0 xdata=0 code=816
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

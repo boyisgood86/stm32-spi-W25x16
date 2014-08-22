@@ -1,0 +1,5 @@
+"main.obj",
+"W25X80Driver.obj",
+"SMGDriver.obj" 
+TO "W25X80_1" 
+RAMSIZE(256) 

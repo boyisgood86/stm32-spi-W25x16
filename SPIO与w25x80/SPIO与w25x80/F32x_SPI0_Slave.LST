@@ -1,0 +1,431 @@
+C51 COMPILER V8.16   F32X_SPI0_SLAVE                                                       09/22/2012 21:21:03 PAGE 1   
+
+
+C51 COMPILER V8.16, COMPILATION OF MODULE F32X_SPI0_SLAVE
+OBJECT MODULE PLACED IN F32x_SPI0_Slave.OBJ
+COMPILER INVOKED BY: E:\Keil\C51\BIN\C51.EXE F32x_SPI0_Slave.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          //-----------------------------------------------------------------------------
+   2          // F32x_SPI0_Slave.c
+   3          //-----------------------------------------------------------------------------
+   4          // Copyright 2006 Silicon Laboratories, Inc.
+   5          // http://www.silabs.com
+   6          //
+   7          // Program Description:
+   8          //
+   9          // This program configures a C8051F32x as a SPI Slave. The 'F32x MCU
+  10          // is configured in 4-wire Slave Mode.
+  11          //
+  12          // This example is intended to be used with the SPI0_Master example.
+  13          //
+  14          // Pinout:
+  15          //
+  16          // P0.0 - SPI SCK    (digital input, open-drain)
+  17          // P0.1 - SPI MISO   (digital output, push-pull)
+  18          // P0.2 - SPI MOSI   (digital input, open-drain)
+  19          // P0.3 - SPI NSS    (digital input, open-drain)
+  20          //
+  21          // P2.2 - LED        (digital output, push-pull)
+  22          //
+  23          // all other port pins unused.
+  24          //
+  25          //
+  26          // How To Test:
+  27          //
+  28          // 1) Download the code to a F320-TB that is connected as above to
+  29          //    another device running the SPI0_Master code.
+  30          // 2) Verify that the LED pins on jumper J12 are populated.
+  31          // 3) Verify J9 and J10 are populated.
+  32          // 4) Run the code.
+  33          // 5) If the communication passes, the LEDs on both the Master and Slave
+  34          //    boards will blink slowly. If it fails, the LEDs will be OFF.
+  35          //
+  36          //
+  37          // Target:         C8051F32x
+  38          // Tool chain:     Keil C51 7.50 / Keil EVAL C51
+  39          // Command Line:   None
+  40          //
+  41          // Release 1.0
+  42          //    -Initial Revision (TP)
+  43          //    -14 DEC 2006
+  44          //
+  45          
+  46          //-----------------------------------------------------------------------------
+  47          // Includes
+  48          //-----------------------------------------------------------------------------
+  49          
+  50          #include <C8051F320.h>                 // SFR declarations
+  51          
+  52          //-----------------------------------------------------------------------------
+  53          // Global Constants
+  54          //-----------------------------------------------------------------------------
+  55          
+C51 COMPILER V8.16   F32X_SPI0_SLAVE                                                       09/22/2012 21:21:03 PAGE 2   
+
+  56          #define SYSCLK             12000000    // Internal oscillator frequency in Hz
+  57          
+  58          #define MAX_BUFFER_SIZE    8           // Maximum buffer Master will send
+  59          
+  60          // Instruction Set
+  61          #define  SLAVE_LED_ON      0x01        // Turn the Slave LED on
+  62          #define  SLAVE_LED_OFF     0x02        // Turn the Slave LED off
+  63          #define  SPI_WRITE         0x04        // Send a byte from the Master to the
+  64                                                 // Slave
+  65          #define  SPI_READ          0x08        // Send a byte from the Slave to the
+  66                                                 // Master
+  67          #define  SPI_WRITE_BUFFER  0x10        // Send a series of bytes from the
+  68                                                 // Master to the Slave
+  69          #define  SPI_READ_BUFFER   0x20        // Send a series of bytes from the Slave
+  70                                                 // to the Master
+  71          #define  ERROR_OCCURRED    0x40        // Indicator for the Slave to tell the
+  72                                                 // Master an error occurred
+  73          
+  74          sbit LED = P2^2;                       // LED='1' means ON
+  75          
+  76          //-----------------------------------------------------------------------------
+  77          // Global Variables
+  78          //-----------------------------------------------------------------------------
+  79          
+  80          unsigned char SPI_Data = 0xA5;
+  81          
+  82          unsigned char SPI_Data_Array[MAX_BUFFER_SIZE] = {0};
+  83          
+  84          //-----------------------------------------------------------------------------
+  85          // Function Prototypes
+  86          //-----------------------------------------------------------------------------
+  87          
+  88          void PCA0_Init (void);
+  89          void Oscillator_Init (void);
+  90          void Port_Init (void);
+  91          void SPI0_Init (void);
+  92          void Init_Device (void);
+  93          
+  94          //-----------------------------------------------------------------------------
+  95          // main() Routine
+  96          //-----------------------------------------------------------------------------
+  97          void main (void)
+  98          {
+  99   1         Init_Device ();                     // Initializes hardware peripherals
+ 100   1      
+ 101   1         EA = 1;                             // Enable global interrupts
+ 102   1      
+ 103   1         LED = 0;
+ 104   1      
+ 105   1         while (1);                          // Loop forever
+ 106   1      }
+ 107          
+ 108          //-----------------------------------------------------------------------------
+ 109          // Initialization Subroutines
+ 110          //-----------------------------------------------------------------------------
+ 111          
+ 112          //-----------------------------------------------------------------------------
+ 113          // PCA0_Init
+ 114          //-----------------------------------------------------------------------------
+ 115          //
+ 116          // Return Value : None
+ 117          // Parameters   : None
+C51 COMPILER V8.16   F32X_SPI0_SLAVE                                                       09/22/2012 21:21:03 PAGE 3   
+
+ 118          //
+ 119          // This function disables the watchdog timer.
+ 120          //
+ 121          //-----------------------------------------------------------------------------
+ 122          void PCA0_Init (void)
+ 123          {
+ 124   1         PCA0MD &= ~0x40;                    // Disable the Watchdog Timer
+ 125   1         PCA0MD = 0x00;
+ 126   1      }
+ 127          
+ 128          //-----------------------------------------------------------------------------
+ 129          // Oscillator_Init
+ 130          //-----------------------------------------------------------------------------
+ 131          //
+ 132          // Return Value : None
+ 133          // Parameters   : None
+ 134          //
+ 135          // This function initializes the system clock to use the internal oscillator
+ 136          // at 12 MHz.
+ 137          //
+ 138          //-----------------------------------------------------------------------------
+ 139          void Oscillator_Init (void)
+ 140          {
+ 141   1         OSCICN = 0x83;                      // Set the internal oscillator to
+ 142   1                                             // 12 MHz
+ 143   1      }
+ 144          
+ 145          //-----------------------------------------------------------------------------
+ 146          // Port_Init
+ 147          //-----------------------------------------------------------------------------
+ 148          //
+ 149          // Return Value : None
+ 150          // Parameters   : None
+ 151          //
+ 152          // This function configures the crossbar and GPIO ports.
+ 153          //
+ 154          // P0.0  -  SCK  (SPI0), Open-Drain, Digital
+ 155          // P0.1  -  MISO (SPI0), Push-Pull,  Digital
+ 156          // P0.2  -  MOSI (SPI0), Open-Drain, Digital
+ 157          // P0.3  -  NSS  (SPI0), Open-Drain, Digital
+ 158          //
+ 159          // P2.2  -  Skipped,     Push-Pull,  Digital (LED D4 on Target Board)
+ 160          //
+ 161          //-----------------------------------------------------------------------------
+ 162          void PORT_Init (void)
+ 163          {
+ 164   1         P0MDOUT = 0x02;                     // Make MISO push-pull
+ 165   1         P2MDOUT = 0x04;                     // Make the LED push-pull
+ 166   1      
+ 167   1         P2SKIP = 0x04;                      // Skip the LED (P2.2)
+ 168   1      
+ 169   1         XBR0 = 0x02;                        // Enable the SPI on the XBAR
+ 170   1         XBR1 = 0x40;                        // Enable the XBAR and weak pull-ups
+ 171   1      }
+ 172          
+ 173          //-----------------------------------------------------------------------------
+ 174          // SPI0_Init
+ 175          //-----------------------------------------------------------------------------
+ 176          //
+ 177          // Return Value : None
+ 178          // Parameters   : None
+ 179          //
+C51 COMPILER V8.16   F32X_SPI0_SLAVE                                                       09/22/2012 21:21:03 PAGE 4   
+
+ 180          // Configures SPI0 to use 4-wire Slave mode. The SPI timing is
+ 181          // configured for Mode 0,0 (data centered on first edge of clock phase and
+ 182          // SCK line low in idle state).
+ 183          //
+ 184          //-----------------------------------------------------------------------------
+ 185          void SPI0_Init()
+ 186          {
+ 187   1         SPI0CFG = 0x00;                     // Operate in Slave mode
+ 188   1                                             // CKPHA = '0', CKPOL = '0'
+ 189   1         SPI0CN = 0x05;                      // 4-wire Slave mode, SPI enabled
+ 190   1          IE=0x40;
+ 191   1        // ESPI0  = 1;                          // Enable SPI interrupts
+ 192   1      }
+ 193          
+ 194          //-----------------------------------------------------------------------------
+ 195          // Init_Device
+ 196          //-----------------------------------------------------------------------------
+ 197          //
+ 198          // Return Value : None
+ 199          // Parameters   : None
+ 200          //
+ 201          // Calls all device initialization functions.
+ 202          //
+ 203          //-----------------------------------------------------------------------------
+ 204          void Init_Device (void)
+ 205          {
+ 206   1         PCA0_Init ();                       // Disable the Watchdog Timer first
+ 207   1         Oscillator_Init ();
+ 208   1         Port_Init ();
+ 209   1         SPI0_Init ();
+ 210   1      }
+ 211          
+ 212          //-----------------------------------------------------------------------------
+ 213          // Interrupt Service Routines
+ 214          //-----------------------------------------------------------------------------
+ 215          
+ 216          //-----------------------------------------------------------------------------
+ 217          // SPI_ISR
+ 218          //-----------------------------------------------------------------------------
+ 219          //
+ 220          // Handles all incoming data and interprets the commands sent from the Master.
+ 221          //
+ 222          // Typical Write:
+ 223          //
+ 224          //              | 1st sent | 2nd sent | 3rd sent |   ...    | last sent |
+ 225          //              ---------------------------------------------------------
+ 226          //  Master NSSv | Command  |   Data1  |   Data2  |   ...    |   DataN   |  NSS^
+ 227          //  Slave       |   N/A    |    N/A   |    N/A   |   ...    |    N/A    |
+ 228          //
+ 229          // Typical Read:
+ 230          //
+ 231          //              | 1st sent | 2nd sent | 3rd sent |   ...    | last sent |
+ 232          //              ---------------------------------------------------------
+ 233          //  Master NSSv | Command  |   dummy  |   dummy  |   ...    |   dummy   |  NSS^
+ 234          //  Slave       |   N/A    |   Data1  |   Data2  |   ...    |   DataN   |
+ 235          //-----------------------------------------------------------------------------
+ 236          void SPI_ISR (void) interrupt 6
+ 237          {
+ 238   1         static unsigned char command;
+ 239   1         static unsigned char array_index = 0;
+ 240   1         static unsigned char state = 0;
+ 241   1         unsigned char dummy_byte;
+C51 COMPILER V8.16   F32X_SPI0_SLAVE                                                       09/22/2012 21:21:03 PAGE 5   
+
+ 242   1      
+ 243   1         if (WCOL == 1)
+ 244   1         {
+ 245   2            // Write collision occurred
+ 246   2      
+ 247   2            SPI0DAT = ERROR_OCCURRED;        // Indicate an error occurred
+ 248   2            WCOL = 0;                        // Clear the Write collision flag
+ 249   2         }
+ 250   1         else if (RXOVRN == 1)
+ 251   1         {
+ 252   2            // Receive overrun occurred
+ 253   2      
+ 254   2            SPI0DAT = ERROR_OCCURRED;        // Indicate an error occurred
+ 255   2            RXOVRN = 0;                      // Clear the Receive Overrun flag
+ 256   2         }
+ 257   1         else
+ 258   1         {
+ 259   2            // SPIF caused the interrupt
+ 260   2      
+ 261   2            // Some commands are single-byte commands (SLAVE_LED_ON/SLAVE_LED_OFF)
+ 262   2            // For multiple-byte commands, use the state to determine action
+ 263   2            // <state> == 0: new transfer; a command is being received
+ 264   2            // <state> == 1: writing/reading data
+ 265   2            if (state == 0)
+ 266   2            {
+ 267   3               command = SPI0DAT;            // Read the command
+ 268   3      
+ 269   3               array_index = 0;              // Reset the array index
+ 270   3      
+ 271   3               switch (command)
+ 272   3               {
+ 273   4                  case SLAVE_LED_ON:
+ 274   4                     LED = 1;
+ 275   4                     state = 0;              // End of transfer (no bytes to send)
+ 276   4      
+ 277   4                     break;
+ 278   4      
+ 279   4                  case SLAVE_LED_OFF:
+ 280   4                     LED = 0;
+ 281   4                     state = 0;              // End of transfer (no bytes to send)
+ 282   4      
+ 283   4                     break;
+ 284   4      
+ 285   4                  case SPI_WRITE:
+ 286   4                     state = 1;              // Do nothing
+ 287   4                                             // Move to State 1 to read data from
+ 288   4                                             // Master
+ 289   4      
+ 290   4                     break;
+ 291   4      
+ 292   4                  case SPI_READ:
+ 293   4                     SPI0DAT = SPI_Data;     // Immediately load SPI0DAT with the
+ 294   4                                             // data requested by the Master, so the
+ 295   4                                             // Master can receive it at the  end of
+ 296   4                                             // the second transfer.
+ 297   4                                             // Because the slave sends the data
+ 298   4                                             // immediately, the Master's SCK is
+ 299   4                                             // limited to a clock slow enough that
+ 300   4                                             // the Slave has time to respond to a
+ 301   4                                             // read.
+ 302   4      
+ 303   4                     state = 0;              // End of transfer (only one byte)
+C51 COMPILER V8.16   F32X_SPI0_SLAVE                                                       09/22/2012 21:21:03 PAGE 6   
+
+ 304   4      
+ 305   4                     break;
+ 306   4      
+ 307   4                  case SPI_WRITE_BUFFER:
+ 308   4                     state = 1;              // Do nothing
+ 309   4                                             // Move to State 1 to read data from
+ 310   4                                             // Master
+ 311   4      
+ 312   4                     break;
+ 313   4      
+ 314   4                  case SPI_READ_BUFFER:
+ 315   4                     SPI0DAT = SPI_Data_Array[array_index]; // Immediately load
+ 316   4                                             // SPI0DAT with the data requested by
+ 317   4                                             // the Master, so the Master can receive
+ 318   4                                             // it at the end of the second transfer.
+ 319   4                                             // Because the slave sends the data
+ 320   4                                             // immediately, the Master's SCK is
+ 321   4                                             // limited to a clock slow enough that
+ 322   4                                             // the Slave has time to respond to a
+ 323   4                                             // read.
+ 324   4      
+ 325   4                     array_index++;
+ 326   4      
+ 327   4                     state = 1;              // Move to State 1 to continue to send
+ 328   4                                             // data to the Master (multiple bytes).
+ 329   4      
+ 330   4                     break;
+ 331   4      
+ 332   4                  default:
+ 333   4                     state = 0;
+ 334   4               }
+ 335   3      
+ 336   3            }
+ 337   2            else if (state == 1)
+ 338   2            {
+ 339   3               switch (command)
+ 340   3               {
+ 341   4                  case SPI_WRITE:
+ 342   4                     SPI_Data = SPI0DAT;
+ 343   4      
+ 344   4                     state = 0;              // End of transfer (one byte received)
+ 345   4      
+ 346   4                     break;
+ 347   4      
+ 348   4                  case SPI_WRITE_BUFFER:
+ 349   4                     SPI_Data_Array[array_index] = SPI0DAT; // Receive the next byte
+ 350   4      
+ 351   4                     array_index++;
+ 352   4      
+ 353   4                     if (array_index == MAX_BUFFER_SIZE) // Check for last data
+ 354   4                     {
+ 355   5                        state = 0;           // Reset the state (end of transfer)
+ 356   5                     }
+ 357   4                     else
+ 358   4                     {
+ 359   5                        state = 1;           // Continue to read in data (more
+ 360   5                                             // bytes to receive)
+ 361   5                     }
+ 362   4      
+ 363   4                     break;
+ 364   4      
+ 365   4                  case SPI_READ_BUFFER:
+C51 COMPILER V8.16   F32X_SPI0_SLAVE                                                       09/22/2012 21:21:03 PAGE 7   
+
+ 366   4                     SPI0DAT = SPI_Data_Array[array_index]; // Send the next byte
+ 367   4                     dummy_byte = SPI0DAT;   // Read the dummy data the Master is
+ 368   4                                             // sending from SPI0DAT to prevent a
+ 369   4                                             // RXOVRN (Receive overrun) error
+ 370   4      
+ 371   4                     array_index++;
+ 372   4      
+ 373   4                     if (array_index == MAX_BUFFER_SIZE) // Check for last data
+ 374   4                     {
+ 375   5                        state = 0;           // Reset the state (end of transfer)
+ 376   5                     }
+ 377   4                     else
+ 378   4                     {
+ 379   5                        state = 1;           // Continue to send out data (more
+ 380   5                                             // bytes to send)
+ 381   5                     }
+ 382   4      
+ 383   4                     break;
+ 384   4      
+ 385   4                  default:
+ 386   4                     state = 0;
+ 387   4               }
+ 388   3            }
+ 389   2      
+ 390   2            SPIF = 0;                        // Clear the SPIF flag
+ 391   2         }
+ 392   1      }
+ 393          
+ 394          //-----------------------------------------------------------------------------
+ 395          // End Of File
+ 396          //-----------------------------------------------------------------------------
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    233    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     12       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
